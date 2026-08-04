@@ -59,17 +59,9 @@ namespace ExploracionPlanes
 
         public static T readJson<T>(string file)
         {
-            try
-            {
-                var settings = new JsonSerializerSettings();
-                settings.TypeNameHandling = TypeNameHandling.Auto;
-                T t = JsonConvert.DeserializeObject<T>(File.ReadAllText(file),settings);
-                return t;
-            }
-            catch (Exception)
-            {
-                throw;
-            }
+            var settings = new JsonSerializerSettings();
+            settings.TypeNameHandling = TypeNameHandling.Auto;
+            return JsonConvert.DeserializeObject<T>(File.ReadAllText(file), settings);
         }
         /// <summary>
         /// Devuelve un string con un nombre único para un archivo

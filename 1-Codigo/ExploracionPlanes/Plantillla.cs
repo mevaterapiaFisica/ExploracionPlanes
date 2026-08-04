@@ -119,12 +119,19 @@ namespace ExploracionPlanes
                 string[] plantillasPath = Directory.GetFiles(pathDestino);
                 foreach (string plantillaPath in plantillasPath)
                 {
-                    Plantilla p = IO.readJson<Plantilla>(plantillaPath);
-                    if (p.path != plantillaPath)
+                    try
                     {
-                        p.actualizarPath(plantillaPath);
+                        Plantilla p = IO.readJson<Plantilla>(plantillaPath);
+                        if (p.path != plantillaPath)
+                        {
+                            p.actualizarPath(plantillaPath);
+                        }
+                        lista.Add(p);
                     }
-                    lista.Add(p);
+                    catch (Exception exp)
+                    {
+                        MessageBox.Show("No se pudo leer la plantilla " + Path.GetFileName(plantillaPath) + ":\n" + exp.Message);
+                    }
                 }
             }
             else

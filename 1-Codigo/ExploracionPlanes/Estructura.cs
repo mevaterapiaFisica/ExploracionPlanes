@@ -50,10 +50,6 @@ namespace ExploracionPlanes
             {
                 sinFiltrar = ((PlanSetup)plan).StructureSet.Structures.ToList();
             }
-            /*else if (plan.GetType() == typeof(ExternalPlanSetup))
-            {
-                sinFiltrar = ((ExternalPlanSetup)plan).StructureSet.Structures.ToList();
-            }*/
             else //(plan.GetType() == typeof(PlanSum))
             {
                 sinFiltrar = ((PlanSum)plan).StructureSet.Structures.ToList();
@@ -82,10 +78,17 @@ namespace ExploracionPlanes
             if (_diccionario == null)
             {
                 _diccionario = new Dictionary<string, string>();
-                string[] estructuras = File.ReadAllLines(Properties.Settings.Default.Path + @"\PlanExplorer\" + "estructuras.txt");
-                foreach (string linea in estructuras)
+                try
                 {
-                    _diccionario.Add(linea.Split('\t')[0], linea.Split('\t')[1]);
+                    string[] estructuras = File.ReadAllLines(Properties.Settings.Default.Path + @"\PlanExplorer\" + "estructuras.txt");
+                    foreach (string linea in estructuras)
+                    {
+                        _diccionario.Add(linea.Split('\t')[0], linea.Split('\t')[1]);
+                    }
+                }
+                catch (Exception exp)
+                {
+                    MessageBox.Show("No se pudo leer estructuras.txt, se van a mostrar los nombres originales de las estructuras:\n" + exp.Message);
                 }
             }
 
@@ -122,8 +125,16 @@ namespace ExploracionPlanes
         {
             if (_alfaBetaLineas == null)
             {
-                string path = Properties.Settings.Default.Path + @"\PlanExplorer\alfaBeta.txt";
-                _alfaBetaLineas = File.ReadAllLines(path);
+                try
+                {
+                    string path = Properties.Settings.Default.Path + @"\PlanExplorer\alfaBeta.txt";
+                    _alfaBetaLineas = File.ReadAllLines(path);
+                }
+                catch (Exception exp)
+                {
+                    MessageBox.Show("No se pudo leer alfaBeta.txt, se va a usar el valor por defecto (3) para todas las estructuras:\n" + exp.Message);
+                    _alfaBetaLineas = new string[0];
+                }
             }
             string coincidencia = _alfaBetaLineas.FirstOrDefault(s => nombre.Contains(s.Split('\t')[0]));
             return coincidencia == null ? 3 : Convert.ToDouble(coincidencia.Split('\t')[1]);

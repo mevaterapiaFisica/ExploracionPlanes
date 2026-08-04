@@ -149,10 +149,6 @@ namespace ExploracionPlanes
             {
                 valorMedido = Math.Round(((PlanSetup)plan).GetVolumeAtDose(estructura, dosis, volumePresentation), 1);
             }
-            /*else if (plan.GetType() == typeof(ExternalPlanSetup))
-            {
-                valorMedido = Math.Round(((ExternalPlanSetup)plan).GetVolumeAtDose(estructura, dosis, volumePresentation), 2);
-            }*/
             else
             {
                 DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, DoseValuePresentation.Absolute, volumePresentation, 0.01).CurveData;
@@ -182,10 +178,6 @@ namespace ExploracionPlanes
             {
                 valorMedido = Math.Round(((PlanSetup)plan).GetVolumeAtDose(estructura, dosis, volumePresentation), 1);
             }
-            /*else if (plan.GetType() == typeof(ExternalPlanSetup))
-            {
-                valorMedido = Math.Round(((ExternalPlanSetup)plan).GetVolumeAtDose(estructura, dosis, volumePresentation), 2);
-            }*/
             else
             {
                 DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, DoseValuePresentation.Absolute, volumePresentation, 0.01).CurveData;

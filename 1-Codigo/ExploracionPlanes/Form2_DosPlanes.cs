@@ -230,10 +230,6 @@ namespace ExploracionPlanes
             {
                 prescripcion = ((PlanSetup)planSeleccionado()).TotalPrescribedDose.Dose / 100;
             }
-            /*else if (planSeleccionado().GetType() == typeof(ExternalPlanSetup))
-            {
-                prescripcion = ((ExternalPlanSetup)planSeleccionado()).TotalPrescribedDose.Dose / 100;
-            }*/
             else
             {
                 foreach (PlanSetup planS in ((PlanSum)planSeleccionado()).PlanSetups) //asumo que todos los planes suman con peso 1. Más adelante se puede mejorar con PlanSumComponents

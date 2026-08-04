@@ -114,14 +114,10 @@ Sistema clínico de análisis y validación de planes de radioterapia que aplica
 | Tipo | Descripción |
 |---|---|
 | **Paths locales hardcodeados** | `DesdeCSV.cs` apunta a `C:\Users\Varian\Downloads\...` — no portable |
-| **PENDIENTE: Importar constraints RC/SBRT de tabla** | `DesdeCSV.LeerTabla()` comentado en el constructor de `Main.cs` — tarea de importación de restricciones SBRT/RC desde CSV incompleta. `Plantilla.filtrarPorFracciones` (auto-selección por `_Nfx`) queda atado a que esta importación se resuelva |
+| **PENDIENTE: Importar constraints RC/SBRT de tabla** | `DesdeCSV.LeerTabla()` comentado en el constructor de `Main.cs` — tarea de importación de restricciones SBRT/RC desde CSV incompleta. `Plantilla.filtrarPorFracciones` (auto-selección por `_Nfx`) queda atado a que esta importación se resuelva. Va a resolverse como importación puntual (no automática) |
 | **PENDIENTE: Bug en doseRate por equipo** | `Chequeos.doseRate`: cadena `if/else if` mal armada — para equipos con dosis especial válida (CRC_EQ1=320, Varian-600C=240, "6oo C/D"=300) la condición específica es falsa (está OK) pero cae al `else` final y se reporta error igual. Falso positivo en el chequeo. Diagnosticado, no corregido a pedido |
 | **Sin TODOs explícitos** | No se encontraron comentarios `// TODO` ni `// FIXME` en el código |
-| **Código comentado** | Soporte para `ExternalPlanSetup` desactivado; paths legacy `\\ARIAMEVADB-SVR` en comentarios |
-| **Sin manejo de errores robusto** | Escasos bloques `try-catch`; la I/O de archivos asume éxito |
-| **Sin async en batch** | `Form3` procesa múltiples pacientes de forma sincrónica (UI se bloquea) |
-| **Suma de planes (PlanSum)** | ESAPI no expone `GetDoseAtVolume()` directamente → requiere interpolación manual en `DVHDataExtensions_ESAPIX` |
-| **Target de publicación** | Path hardcodeado a `c:\PlanExplorer\` en el archivo de proyecto |
+| **Suma de planes (PlanSum)** | ESAPI no expone `GetDoseAtVolume()` directamente → requiere interpolación manual en `DVHDataExtensions_ESAPIX`. Es limitación de la API, no bug — ya mitigada, sin acción pendiente |
 
 ### Código muerto eliminado
 
@@ -137,6 +133,10 @@ Sistema clínico de análisis y validación de planes de radioterapia que aplica
 - `Mineria.listaPlantillas`: agregado guard contra lista vacía de JSONs (evitaba `IndexOutOfRangeException`).
 - `Reporte.imprimir`: método muerto sin callers, eliminado.
 - Paths derivados de `Settings.Default.Path` (`Plantilla.pathDestino`, `Reporte.pathDestino`, paths estáticos de `Form2`) pasaron de campo estático cacheado a propiedad calculada — se recalculan siempre desde `Settings.Default.Path` en vez de quedar obsoletos si el usuario cambia la ruta de red en `FormConfiguracion` sin reiniciar.
+- **Manejo de errores en I/O de archivos**: `Plantilla.leerPlantillas()` ahora aísla el `try/catch` por archivo — una plantilla JSON corrupta o ilegible se reporta y se salta, en vez de tirar abajo la carga de todas las plantillas al abrir la app. `Estructura.diccionario()` y `Estructura.AlfaBeta()` ya no crashean si `estructuras.txt`/`alfaBeta.txt` no están accesibles (ruta de red caída): avisan una vez y siguen con nombres originales / α-β por defecto (3). `IO.readJson<T>` perdió un `catch (Exception) { throw; }` que no hacía nada.
+- **Target de publicación**: se borró el bloque ClickOnce del `.csproj` (`PublishUrl=c:\PlanExplorer\` y afines) — config vestigial de VS sin uso en el flujo real de deploy de esta app.
+- **Código comentado**: eliminados los bloques `ExternalPlanSetup` comentados (Estructura.cs, Form2_DosPlanes.cs, RestriccionDosis.cs, RestriccionDosisMax.cs, RestriccionIndiceConformidad.cs, RestriccionVolumen.cs) y los paths legacy `\\ARIAMEVADB-SVR` + método `chequearConfiguracion` comentado en `Configuracion.cs`.
+- **Sin async en batch**: revisado — el loop que iteraba una lista de pacientes en batch vivía en `Form3copia.cs`, ya eliminado por código muerto en esta misma sesión. El `Form3.cs` vigente procesa un paciente a la vez por click de usuario (mismo patrón sincrónico que `Form2`), no hay actualmente un loop bloqueante sobre múltiples pacientes. No se aplicó cambio — no hay nada que corregir con el código actual.
  
 ---
  

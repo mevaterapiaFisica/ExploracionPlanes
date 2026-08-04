@@ -133,18 +133,23 @@ namespace ExploracionPlanes
 
 
 
-        public void analizarPlanEstructura(PlanningItem plan, Structure estructura)
+        private double dosisEnGy(PlanningItem plan, Structure estructura)
         {
             DoseValuePresentation doseValuePresentation = DoseValuePresentation.Absolute;
             if (plan is PlanSetup)
             {
-                valorMedido = Math.Round(((PlanSetup)plan).GetDoseAtVolume(estructura, volumenDosisMaxima, VolumePresentation.AbsoluteCm3, doseValuePresentation).Dose / 100, 2);
+                return Math.Round(((PlanSetup)plan).GetDoseAtVolume(estructura, volumenDosisMaxima, VolumePresentation.AbsoluteCm3, doseValuePresentation).Dose / 100, 2);
             }
             else
             {
                 DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, doseValuePresentation, VolumePresentation.AbsoluteCm3, 0.01).CurveData;
-                valorMedido = Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, volumenDosisMaxima).Dose / 100, 2);
+                return Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, volumenDosisMaxima).Dose / 100, 2);
             }
+        }
+
+        public void analizarPlanEstructura(PlanningItem plan, Structure estructura)
+        {
+            valorMedido = dosisEnGy(plan, estructura);
             if (unidadValor == "%")
             {
                 valorMedido = Math.Round(valorMedido / prescripcionEstructura * 100,2); //extraigo en Gy y paso a porcentaje
@@ -171,8 +176,12 @@ namespace ExploracionPlanes
 
         public void analizarPlanEstructura(PlanningItem plan, Structure estructura, double alfaBeta, int numeroFracciones)
         {
-            analizarPlanEstructura(plan, estructura);
-            valorMedido = Math.Round(EQD2.Dosis2Gy(valorMedido, alfaBeta, numeroFracciones),1);
+            valorMedido = Math.Round(EQD2.Dosis2Gy(dosisEnGy(plan, estructura), alfaBeta, numeroFracciones), 1);
+            if (unidadValor == "%")
+            {
+                double prescripcionEQD2 = EQD2.Dosis2Gy(prescripcionEstructura, alfaBeta, numeroFracciones);
+                valorMedido = Math.Round(valorMedido / prescripcionEQD2 * 100, 2); //porcentaje relativo a la prescripción convertida a EQD2
+            }
         }
 
 

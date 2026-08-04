@@ -134,7 +134,7 @@ namespace ExploracionPlanes
 
 
 
-        public void analizarPlanEstructura(PlanningItem plan, Structure estructura)
+        private double dosisEnGy(PlanningItem plan, Structure estructura)
         {
             VolumePresentation volumePresentation;
             DoseValuePresentation doseValuePresentation = DoseValuePresentation.Absolute;
@@ -151,38 +151,45 @@ namespace ExploracionPlanes
                 if (valorCorrespondiente == 100 && unidadCorrespondiente == "%")
                 {
                     double volumen = 100 * (1 - 0.035 / estructura.Volume);
-                    valorMedido = Math.Round(((PlanSetup)plan).GetDoseAtVolume(estructura, volumen, volumePresentation, doseValuePresentation).Dose / 100, 1);
+                    return Math.Round(((PlanSetup)plan).GetDoseAtVolume(estructura, volumen, volumePresentation, doseValuePresentation).Dose / 100, 1);
                 }
                 else
                 {
-                    valorMedido = Math.Round(((PlanSetup)plan).GetDoseAtVolume(estructura, valorCorrespondiente, volumePresentation, doseValuePresentation).Dose / 100, 1);
+                    return Math.Round(((PlanSetup)plan).GetDoseAtVolume(estructura, valorCorrespondiente, volumePresentation, doseValuePresentation).Dose / 100, 1);
                 }
             }
             else
             {
-                 DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, doseValuePresentation, volumePresentation, 0.01).CurveData;
+                DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, doseValuePresentation, volumePresentation, 0.01).CurveData;
                 if (valorCorrespondiente==100 && unidadCorrespondiente=="%")
                 {
                     double volumen = 100 * (1 - 0.035 / estructura.Volume);
-                    valorMedido = Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, volumen).Dose / 100, 1);
+                    return Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, volumen).Dose / 100, 1);
                 }
                 else
                 {
-                    valorMedido = Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, valorCorrespondiente).Dose / 100, 1);
+                    return Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, valorCorrespondiente).Dose / 100, 1);
                 }
             }
-                
+        }
+
+        public void analizarPlanEstructura(PlanningItem plan, Structure estructura)
+        {
+            valorMedido = dosisEnGy(plan, estructura);
             if (unidadValor == "%")
             {
                 valorMedido = Math.Round(valorMedido / prescripcionEstructura * 100, 2); //extraigo en Gy y paso a porcentaje
             }
-
         }
 
         public void analizarPlanEstructura(PlanningItem plan, Structure estructura, double alfaBeta, int numeroFracciones)
         {
-            analizarPlanEstructura(plan, estructura);
-            valorMedido = Math.Round(EQD2.Dosis2Gy(valorMedido, alfaBeta, numeroFracciones),1);
+            valorMedido = Math.Round(EQD2.Dosis2Gy(dosisEnGy(plan, estructura), alfaBeta, numeroFracciones), 1);
+            if (unidadValor == "%")
+            {
+                double prescripcionEQD2 = EQD2.Dosis2Gy(prescripcionEstructura, alfaBeta, numeroFracciones);
+                valorMedido = Math.Round(valorMedido / prescripcionEQD2 * 100, 2); //porcentaje relativo a la prescripción convertida a EQD2
+            }
         }
 
         public bool chequearSamplingCoverage(PlanningItem plan, Structure estructura)

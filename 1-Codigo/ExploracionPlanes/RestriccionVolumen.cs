@@ -162,7 +162,8 @@ namespace ExploracionPlanes
             double valorCorrespondienteGy = valorCorrespondiente;
             if (unidadCorrespondiente == "%")
             {
-                valorCorrespondienteGy = valorCorrespondiente * prescripcionEstructura / 100; //Convierto el % a Gy para extraer
+                double prescripcionEQD2 = EQD2.Dosis2Gy(prescripcionEstructura, alfaBeta, numeroFracciones);
+                valorCorrespondienteGy = valorCorrespondiente * prescripcionEQD2 / 100; //Convierto el % (de la prescripción en EQD2) a Gy EQD2
             }
             DoseValue dosis = new DoseValue(EQD2.DosisFxAlt(valorCorrespondienteGy,alfaBeta,numeroFracciones) * 100, DoseValue.DoseUnit.cGy);
 

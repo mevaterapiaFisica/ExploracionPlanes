@@ -158,7 +158,8 @@ namespace ExploracionPlanes
             valorMedido = Math.Round(dmediaEQD2, 1);
             if (unidadValor == "%")
             {
-                valorMedido = Math.Round(valorMedido / prescripcionEstructura * 100, 1); //extraigo en Gy y paso a porcentaje
+                double prescripcionEQD2 = EQD2.Dosis2Gy(prescripcionEstructura, alfaBeta, numeroFracciones);
+                valorMedido = Math.Round(valorMedido / prescripcionEQD2 * 100, 1); //porcentaje relativo a la prescripción convertida a EQD2
             }
             //valorMedido = double.NaN;
         }

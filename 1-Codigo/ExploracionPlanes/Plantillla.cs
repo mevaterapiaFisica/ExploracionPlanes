@@ -15,7 +15,7 @@ namespace ExploracionPlanes
     public class Plantilla
     {
 
-        public static string pathDestino = Properties.Settings.Default.Path + @"\Plantillas\";
+        public static string pathDestino => Configuracion.pathPlantilla();
         public string IDpaciente { get; set; }
         public string plan { get; set; }
         public string nombre { get; set; }
@@ -113,7 +113,6 @@ namespace ExploracionPlanes
 
         public static List<Plantilla> leerPlantillas()
         {
-            pathDestino = Properties.Settings.Default.Path + @"\Plantillas\";
             List<Plantilla> lista = new List<Plantilla>();
             if (Directory.Exists(pathDestino))
             {
@@ -223,21 +222,18 @@ namespace ExploracionPlanes
             guardar(true, this);
         }
 
-        public double ContarEstructurasCoincidentes(PlanningItem plan)
+        public double ContarEstructurasCoincidentes(List<Structure> estructurasPlan)
         {
             double coincidencias = 0;
-            foreach (Estructura estructura in estructuras())
+            List<Estructura> estructurasPlantilla = estructuras();
+            foreach (Estructura estructura in estructurasPlantilla)
             {
-                if (Estructura.asociarConLista(estructura.nombresPosibles, Estructura.listaEstructuras(plan)) != null)
+                if (Estructura.asociarConLista(estructura.nombresPosibles, estructurasPlan) != null)
                 {
                     coincidencias++;
                 }
             }
-            /*if (coincidencias>2)
-            {
-                MessageBox.Show(this.nombre + " " + coincidencias.ToString() + " " + estructuras().Count.ToString() + ((PlanSetup)plan).StructureSet.Structures.Where(s => !s.IsEmpty).Count());
-            }*/
-            return coincidencias*coincidencias/(estructuras().Count);
+            return coincidencias * coincidencias / estructurasPlantilla.Count;
         }
 
         public bool sonMismaPlantilla(Plantilla otraPlantilla) //para ver si analizan lo mismo
@@ -258,9 +254,15 @@ namespace ExploracionPlanes
         public static Plantilla SeleccionarAutomaticamentePlantilla(PlanningItem plan)
         {
             List<Tuple<Plantilla, double>> Coincidencias = new List<Tuple<Plantilla, double>>();
-            foreach (Plantilla plantilla in Plantilla.leerPlantillas())
+            List<Plantilla> plantillas = Plantilla.leerPlantillas();
+            if (plan is PlanSetup)
             {
-                Coincidencias.Add(new Tuple<Plantilla, double>(plantilla, plantilla.ContarEstructurasCoincidentes(plan)));
+                plantillas = filtrarPorFracciones(plantillas, (PlanSetup)plan);
+            }
+            List<Structure> estructurasPlan = Estructura.listaEstructuras(plan);
+            foreach (Plantilla plantilla in plantillas)
+            {
+                Coincidencias.Add(new Tuple<Plantilla, double>(plantilla, plantilla.ContarEstructurasCoincidentes(estructurasPlan)));
             }
             double mayorCoincidencia = Coincidencias.OrderByDescending(c => c.Item2).First().Item2;
             List<Plantilla> plantillasMayorCoincidencia = Coincidencias.Where(c => c.Item2 == mayorCoincidencia).Select(t => t.Item1).ToList();
@@ -281,11 +283,26 @@ namespace ExploracionPlanes
 
         }
 
+        public static List<Plantilla> filtrarPorFracciones(List<Plantilla> plantillas, PlanSetup planSetup)
+        {
+            int numFx = planSetup.UniqueFractionation.NumberOfFractions.Value;
+            var plantillas_filtradas = plantillas.Where(p => p.nombre.Contains("_" + numFx.ToString() + "fx")).ToList();
+            if (plantillas_filtradas != null & plantillas_filtradas.Count() > 0)
+            {
+                return plantillas_filtradas;
+            }
+            else
+            {
+                return plantillas;
+            }
+
+        }
+
         private static Plantilla reconocerPlantillaFino(List<Plantilla> plantillas, PlanSetup planSetup)
         {
             IQueryable<Plantilla> query = plantillas.AsQueryable();
 
-            if (query.Count() > 1  && query.Any(p => p.nombre.ToLower().Contains("imrt")))
+            if (query.Count() > 1 && query.Any(p => p.nombre.ToLower().Contains("imrt")))
             {
                 if (planSetup.Beams.First().ControlPoints.Count > 20) //Es IMRT o VMAT
                 {
@@ -296,7 +313,7 @@ namespace ExploracionPlanes
                     query = query.Where(p => p.nombre.ToLower().Contains("3dc")).AsQueryable();
                 }
             }
-            if (query.Count()>1 && query.Any(p => p.nombre.ToLower().Contains("hipo")))
+            if (query.Count() > 1 && query.Any(p => p.nombre.ToLower().Contains("hipo")))
             {
                 if (planSetup.UniqueFractionation.NumberOfFractions == 15) // Mama hipofraccionada
                 {
@@ -307,7 +324,7 @@ namespace ExploracionPlanes
                     query = query.Where(p => p.nombre.ToLower().Contains("normo")).AsQueryable();
                 }
             }
-            if (query.Count() > 1 &&  query.Any(p => p.nombre.ToLower().Contains("der"))) //mama der vs izq
+            if (query.Count() > 1 && query.Any(p => p.nombre.ToLower().Contains("der"))) //mama der vs izq
             {
                 if ((planSetup.Beams.First().IsocenterPosition.x - planSetup.StructureSet.Image.UserOrigin.x) < 0)
                 {
@@ -330,7 +347,7 @@ namespace ExploracionPlanes
                     query = query.Where(p => p.nombre.ToLower().Contains("pel")).AsQueryable();
                 }
             }
-            if (query.Count()>0)
+            if (query.Count() > 0)
             {
                 return query.First();
             }
@@ -343,7 +360,7 @@ namespace ExploracionPlanes
 
         public bool TieneRestriccionEnPlanMod()
         {
-            return listaRestricciones.Any(r=>!string.IsNullOrEmpty(r.planMod));
+            return listaRestricciones.Any(r => !string.IsNullOrEmpty(r.planMod));
         }
 
         public string ExtensionPlanMod()

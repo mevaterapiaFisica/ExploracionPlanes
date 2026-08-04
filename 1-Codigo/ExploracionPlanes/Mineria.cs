@@ -84,6 +84,11 @@ namespace ExploracionPlanes
             {
                 plantillas.Add(IO.readJson<Plantilla>(archivo));
             }
+            if (plantillas.Count == 0)
+            {
+                MessageBox.Show("No se encontraron plantillas con el nombre: " + nombrePlantilla);
+                return plantillasFiltradas;
+            }
             plantillasFiltradas.Add(plantillas[0]);
             foreach (Plantilla plantilla in plantillas.Skip(1))
             {
@@ -99,7 +104,7 @@ namespace ExploracionPlanes
             if (soloPlanesAprobados)
             {
                 List<Plantilla> plantillasFiltradasAprobados = new List<Plantilla>();
-                using (VMS.TPS.Common.Model.API.Application app = VMS.TPS.Common.Model.API.Application.CreateApplication("paberbuj", "123qwe"))
+                using (VMS.TPS.Common.Model.API.Application app = VMS.TPS.Common.Model.API.Application.CreateApplication(null, null))
                 {
                     foreach (Plantilla plantilla in plantillasFiltradas)
                     {

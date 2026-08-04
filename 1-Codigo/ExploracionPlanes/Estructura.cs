@@ -75,22 +75,27 @@ namespace ExploracionPlanes
             return listaS;
         }
 
+        private static Dictionary<string, string> _diccionario;
+
         public static Dictionary<string, string> diccionario()
         {
-            Dictionary<string, string> Diccionario = new Dictionary<string, string>();
-            string[] estructuras = File.ReadAllLines(Properties.Settings.Default.Path + @"\PlanExplorer\" + "estructuras.txt");
-            foreach (string linea in estructuras)
+            if (_diccionario == null)
             {
-                Diccionario.Add(linea.Split('\t')[0], linea.Split('\t')[1]);
+                _diccionario = new Dictionary<string, string>();
+                string[] estructuras = File.ReadAllLines(Properties.Settings.Default.Path + @"\PlanExplorer\" + "estructuras.txt");
+                foreach (string linea in estructuras)
+                {
+                    _diccionario.Add(linea.Split('\t')[0], linea.Split('\t')[1]);
+                }
             }
 
-            return Diccionario;
+            return _diccionario;
         }
         public static string nombreEnDiccionario(Estructura estructura)
         {
-            if (diccionario().ContainsKey(estructura.nombre))
+            if (diccionario().TryGetValue(estructura.nombre, out string nombreDiccionario))
             {
-                return diccionario()[estructura.nombre];
+                return nombreDiccionario;
             }
             else
             {
@@ -111,26 +116,17 @@ namespace ExploracionPlanes
             return PTVs;
         }
 
+        private static string[] _alfaBetaLineas;
+
         public static double AlfaBeta(string nombre)
         {
-            string path = Properties.Settings.Default.Path + @"\PlanExplorer\alfaBeta.txt";
-            string[] lista = File.ReadAllLines(path);
-            //string[] lista = File.ReadAllLines(Properties.Settings.Default.Path + @"PlanExplorer\alfaBeta.txt");
-            /*List<Tuple<string, string>> pares = new List<Tuple<string, string>>();
-            foreach (string linea in lista)
+            if (_alfaBetaLineas == null)
             {
-                string[] aux = linea.Split('\t');
-                pares.Add(aux[0],aux[1])
-            }*/
-            if (lista.Any(s => nombre.Contains(s.Split('\t')[0])))
-            {
-                return Convert.ToDouble(lista.Where(s => nombre.Contains(s.Split('\t')[0])).First().Split('\t')[1]);
+                string path = Properties.Settings.Default.Path + @"\PlanExplorer\alfaBeta.txt";
+                _alfaBetaLineas = File.ReadAllLines(path);
             }
-            else
-            {
-                return 3;
-            }
-
+            string coincidencia = _alfaBetaLineas.FirstOrDefault(s => nombre.Contains(s.Split('\t')[0]));
+            return coincidencia == null ? 3 : Convert.ToDouble(coincidencia.Split('\t')[1]);
         }
     }
 

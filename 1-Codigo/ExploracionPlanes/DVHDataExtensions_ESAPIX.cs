@@ -71,9 +71,6 @@ namespace ExploracionPlanes
                 return new DoseValue(doseAtPoint, point1.DoseValue.Unit);
             }
             return new DoseValue(double.NaN, closestPoint.DoseValue.Unit);
-            throw new Exception(string.Format(
-                "Interpolation failed. Index was : {0}, DVH Point Count : {1}, Volume was {2}, ClosestVol was {3}",
-                index1, dvh.Count(), volume, minVolumeDiff));
         }
 
         

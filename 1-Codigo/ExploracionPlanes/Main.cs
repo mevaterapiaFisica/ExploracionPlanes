@@ -18,7 +18,6 @@ namespace ExploracionPlanes
         //public PruebaImprimir aplicarPlantilla;
         public Form2 aplicarPlantilla;
         public Form3 aplicarPorLote;
-        public Form3copia aplicarPorLoteAutomatizado;
         public PlantillaBlanco plantillaBlanco;
         public PlanesParaComparar planesParaCompararForm;
         public Form2_DosPlanes Form2_DosPlanes;
@@ -36,7 +35,7 @@ namespace ExploracionPlanes
 
         public Main(bool _hayContext = false, Patient _pacienteContext = null, PlanningItem _planContext = null, User _usuarioContext = null, IEnumerable<PlanSum> _planSumsContext = null, IEnumerable<PlanSetup> _plansContext = null)
         {
-            DesdeCSV.LeerTabla();
+            //DesdeCSV.LeerTabla();
             InitializeComponent();
             leerPlantillas();
             hayContext = _hayContext;
@@ -140,7 +139,6 @@ namespace ExploracionPlanes
 
         private void BT_Nueva_Click(object sender, EventArgs e)
         {
-            //crearPlantilla = new Form1(this, false);
             crearPlantilla = new Form1_prioridades(this, false);
             crearPlantilla.ShowDialog();
         }
@@ -256,8 +254,6 @@ namespace ExploracionPlanes
         {
             aplicarPorLote = new Form3(plantillaSeleccionada());
             aplicarPorLote.ShowDialog();
-            //aplicarPorLoteAutomatizado = new Form3copia(plantillaSeleccionada());
-            //aplicarPorLoteAutomatizado.ShowDialog();
         }
 
 
@@ -317,7 +313,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                BT_CompararPlanes.Enabled = false;
+                BT_CompararPlanes.Enabled = true;
                 Metodos.habilitarBoton(editaPlantilla, BT_Nueva);
                 Metodos.habilitarBoton(editaPlantilla, BT_NuevaConCondiciones);
                 Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla, BT_Editar);

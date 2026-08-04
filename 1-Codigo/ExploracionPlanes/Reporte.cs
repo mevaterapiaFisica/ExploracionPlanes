@@ -14,7 +14,7 @@ namespace ExploracionPlanes
 {
     public static class Reporte
     {
-        public static string pathDestino = Properties.Settings.Default.Path + @"\Reportes\";
+        public static string pathDestino => Configuracion.pathReportes();
 
         public static void exportarAPdf(string apellidoPaciente, string nombrePaciente, string IDPaciente, string nombrePlan, string nombrePlantilla, Document report)
         {
@@ -43,15 +43,6 @@ namespace ExploracionPlanes
         }
 
         
-
-        public static void imprimir(Document report)
-        {
-            DocumentRenderer documentRenderer = new DocumentRenderer(report);
-            MigraDoc.Rendering.Printing.MigraDocPrintDocument printDocument = new MigraDoc.Rendering.Printing.MigraDocPrintDocument();
-            printDocument.Renderer = documentRenderer;
-
-
-        }
 
         public static Document crearReporte(string apellidoPaciente, string nombrePaciente, string IDPaciente, string equipo, string nombrePlantilla, string notaPlantilla, string realizadoPor, string plan, string presc, DataGridView DGV)
         {

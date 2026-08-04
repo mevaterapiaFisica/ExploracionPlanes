@@ -50,11 +50,7 @@ namespace ExploracionPlanes
 
         public bool CumpleCondicion(PlanningItem planActual, Structure ptv = null)
         {
-            if (this == null)
-            {
-                return true;
-            }
-            else if (tipo == Tipo.SinCondicion ||  tipo == Tipo.CondicionaA || tipo == Tipo.CondicionadaPor)
+            if (tipo == Tipo.SinCondicion ||  tipo == Tipo.CondicionaA || tipo == Tipo.CondicionadaPor)
             {
                 return true;
             }

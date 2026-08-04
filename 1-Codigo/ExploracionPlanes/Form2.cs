@@ -31,9 +31,9 @@ namespace ExploracionPlanes
         PrintDialog printDialog1 = new PrintDialog();
         PrintPreviewDialog printPreviewDialog1 = new PrintPreviewDialog();
         VMS.TPS.Common.Model.API.Application app;
-        static string pathParEstructuras = Properties.Settings.Default.Path + @"\paresEstructuras\";
-        static string pathPrescripciones = Properties.Settings.Default.Path + @"\prescripciones\";
-        public static string pathReportesJson = Properties.Settings.Default.Path + @"\Reportes\Json\";
+        static string pathParEstructuras => Properties.Settings.Default.Path + @"\paresEstructuras\";
+        static string pathPrescripciones => Properties.Settings.Default.Path + @"\prescripciones\";
+        public static string pathReportesJson => Properties.Settings.Default.Path + @"\Reportes\Json\";
         string plantillaNotaOriginal = "";
 
 
@@ -63,7 +63,7 @@ namespace ExploracionPlanes
             {
                 try
                 {
-                    app = VMS.TPS.Common.Model.API.Application.CreateApplication("paberbuj", "123qwe");
+                    app = VMS.TPS.Common.Model.API.Application.CreateApplication(null,null);
                 }
                 catch (Exception)
                 {
@@ -589,6 +589,9 @@ namespace ExploracionPlanes
         {
             try
             {
+                var plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planSeleccionado());
+
+
                 llenarDGVEstructuras();
                 planSeleccionado();
                 llenarDGVPrescripciones();

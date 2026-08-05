@@ -344,6 +344,7 @@ namespace ExploracionPlanes
             string nombreSlot = DGV_Estructuras.CurrentRow.Cells[0].Value.ToString();
             duplicarEstructura(nombreSlot);
             llenarDGVEstructuras();
+            llenarDGVPrescripciones();
         }
 
         // Guarda en memoria (por plan) cuántas copias tiene cada slot duplicado, derivándolo de los

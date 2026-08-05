@@ -185,6 +185,7 @@
             // BT_Analizar
             // 
             this.BT_Analizar.Enabled = false;
+            this.BT_Analizar.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.BT_Analizar.Location = new System.Drawing.Point(326, 267);
             this.BT_Analizar.Name = "BT_Analizar";
             this.BT_Analizar.Size = new System.Drawing.Size(109, 23);

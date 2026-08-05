@@ -66,6 +66,7 @@
             this.BT_AplicarPrioridad = new System.Windows.Forms.Button();
             this.BT_EvaluarEnPlanMod = new System.Windows.Forms.Button();
             this.BT_AgregarNotaLote = new System.Windows.Forms.Button();
+            this.label8 = new System.Windows.Forms.Label();
             this.GB_NuevaRestriccion.SuspendLayout();
             this.Panel_esMenorque.SuspendLayout();
             this.SuspendLayout();
@@ -360,6 +361,7 @@
             // BT_GuardarPlantilla
             // 
             this.BT_GuardarPlantilla.Enabled = false;
+            this.BT_GuardarPlantilla.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.BT_GuardarPlantilla.Location = new System.Drawing.Point(645, 535);
             this.BT_GuardarPlantilla.Name = "BT_GuardarPlantilla";
             this.BT_GuardarPlantilla.Size = new System.Drawing.Size(128, 36);
@@ -416,7 +418,16 @@
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(94, 13);
             this.label5.TabIndex = 24;
-            this.label5.Text = "3. Nota (opcional):";
+            this.label5.Text = "4. Nota (opcional):";
+            // 
+            // label8
+            // 
+            this.label8.AutoSize = true;
+            this.label8.Location = new System.Drawing.Point(30, 273);
+            this.label8.Name = "label8";
+            this.label8.Size = new System.Drawing.Size(132, 13);
+            this.label8.TabIndex = 28;
+            this.label8.Text = "3. Restricciones cargadas";
             // 
             // BT_RestriccionAbajo
             // 
@@ -492,6 +503,7 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.GB_NuevaRestriccion);
             this.Controls.Add(this.LB_listaRestricciones);
+            this.Controls.Add(this.label8);
             this.Name = "Form1_prioridades";
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Creación de plantillas";
@@ -545,6 +557,7 @@
         private System.Windows.Forms.Button BT_AplicarPrioridad;
         private System.Windows.Forms.Button BT_EvaluarEnPlanMod;
         private System.Windows.Forms.Button BT_AgregarNotaLote;
+        private System.Windows.Forms.Label label8;
     }
 }
 

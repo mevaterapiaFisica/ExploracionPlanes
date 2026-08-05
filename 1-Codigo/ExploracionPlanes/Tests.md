@@ -221,6 +221,30 @@ MSBuild ... ExploracionPlanes.csproj /t:Build
 
 ---
 
+## 2026-08-05 — Unificación visual: numeración de pasos y fuente de botones primarios
+
+Cambio puramente de UI (`.Designer.cs`), sin tocar lógica — no aplica la convención de test antes/después (no hay comportamiento que verificar, solo layout). Basado en los screenshots que pasó el usuario (`screenshots/Plugin` y `screenshots/Standalone`):
+
+- **Numeración de pasos duplicada/faltante en los editores de plantilla**: `Form1_ext.cs` tenía dos secciones marcadas "3." (`GB_NuevaRestriccion` = "3. Nueva Restricción" y `label5` = "3. Nota (opcional)"), y la lista de restricciones cargadas no tenía número de paso. Se agregó `label7` = "4. Restricciones cargadas" y se corrió `label5` a "5. Nota (opcional)". En `Form1_prioridades.cs` (mismo problema, sin el grupo de Condiciones) se agregó `label8` = "3. Restricciones cargadas" y se corrió `label5` de "3." a "4. Nota (opcional)".
+- **Fuente de botones "de commit" inconsistente**: en `Form2`/`Form2_DosPlanes` los botones finales (Analizar, Imprimir, Guardar Reporte) usan `Microsoft Sans Serif 10F`; en `Form1_ext`/`Form1_prioridades` (`BT_GuardarPlantilla`) y `Form3` (`BT_Analizar`, `BT_GuardarPaciente`, `BT_Exportar`) usaban el font por defecto del formulario (8.25F). Se les agregó el mismo `Font` de Form2, sin tocar tamaño/posición (los textos largos de `BT_GuardarPaciente`/`BT_Exportar` ya usan una altura de 37px que da margen).
+
+No se tocó nada más (paneles, DataGridView, orden de tabulación) para no arriesgar romper layout que no puedo verificar visualmente en esta máquina (ver limitación de captura de pantalla abajo). Compila limpio con MSBuild.
+
+### Corrección tras screenshots reales del usuario
+
+El usuario confirmó con capturas reales (`screenshots/Nuevas/`, standalone) que la numeración de Form1_ext/Form1_prioridades quedó bien. Pero encontró 2 problemas:
+
+1. **`BT_GuardarPaciente` en Form3 cortaba el texto** ("7. Guardar y" en vez de "7. Guardar y cerrar paciente") al subir la fuente a 10pt — el botón es angosto (109px) para ese texto largo a esa fuente. Se revirtió el `Font` en `BT_GuardarPaciente` y, por el mismo riesgo, en `BT_Exportar` (texto "Exportar información", no confirmado en el screenshot). Se dejó el cambio de fuente solo en `BT_Analizar` (texto corto "Analizar", sin riesgo, igual que en Form2).
+2. **Bug real en "Duplicar estructura" (item 4), encontrado en un screenshot de Eclipse real**: al duplicar `PTV_Low-04` (restricciones D95%/D99%, en `%`), el estructura nuevo `PTV_Low-04 (2)` no aparecía en la tabla "Ajustar prescripciones" → `prescripcionEstructura` quedaba en 0 → el análisis daba `Infinity%` en vez de un porcentaje real. Causa: `BT_DuplicarEstructura_Click` (Form2.cs) solo refrescaba `llenarDGVEstructuras()`, no `llenarDGVPrescripciones()`. Fix: se agregó el segundo refresco en el mismo click. (El flujo de reapertura del plan —constructor y `BT_SeleccionarPlan_Click`— ya llamaba a ambos, así que solo el click en vivo tenía el bug).
+
+Confirmado además en ese mismo screenshot que el resto de "Duplicar estructura" funciona como se pidió: `PTV_Low-04 (2)` matcheado a una segunda estructura real del plan (`zOptiPTV_Low-04`), con sus propias filas D95%/D99% en el análisis, y el checkbox "Ocultar no analizadas" (item 5) funcionando (tildado, oculta lo no matcheado).
+
+### Limitación descubierta: no puedo autoverificar visualmente en esta PC
+
+Se probó lanzar el `.exe` standalone acá y capturarlo con PowerShell (`GetWindowRect` + `Graphics.CopyFromScreen`): el proceso corre y la ventana tiene un handle válido, pero la captura devuelve contenido desactualizado/de otra sesión, no lo que la ventana realmente renderiza en ese momento (probable framebuffer no refrescado sin uso interactivo real en el momento de la captura). Por eso estos cambios de layout se hicieron calculando coordenadas a mano a partir del código y de los screenshots ya provistos, sin loop de verificación visual propio — pendiente que el usuario confirme con una captura real desde esa PC.
+
+---
+
 ## Convención para tests futuros
 
 A partir de este cambio, todo cambio sobre código funcional debe incluir un test que compare comportamiento antes/después, documentado como una entrada nueva en este archivo (fecha, qué se cambió, cómo se testeó, números usados, resultado). Si el código depende de ESAPI y no se puede instanciar fuera de Eclipse, aislar la lógica pura afectada (como se hizo en `Tests/TestEQD2/`) en vez de omitir el test.

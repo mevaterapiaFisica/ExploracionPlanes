@@ -68,6 +68,7 @@
             this.BT_RestriccionAbajo = new System.Windows.Forms.Button();
             this.BT_RestriccionArriba = new System.Windows.Forms.Button();
             this.BT_CargarDesdePaciente = new System.Windows.Forms.Button();
+            this.label7 = new System.Windows.Forms.Label();
             this.GB_NuevaRestriccion.SuspendLayout();
             this.Panel_esMenorque.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_restricciones)).BeginInit();
@@ -279,6 +280,7 @@
             // BT_GuardarPlantilla
             // 
             this.BT_GuardarPlantilla.Enabled = false;
+            this.BT_GuardarPlantilla.Font = new System.Drawing.Font("Microsoft Sans Serif", 10F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.BT_GuardarPlantilla.Location = new System.Drawing.Point(538, 548);
             this.BT_GuardarPlantilla.Name = "BT_GuardarPlantilla";
             this.BT_GuardarPlantilla.Size = new System.Drawing.Size(128, 36);
@@ -335,7 +337,16 @@
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(94, 13);
             this.label5.TabIndex = 24;
-            this.label5.Text = "3. Nota (opcional):";
+            this.label5.Text = "5. Nota (opcional):";
+            // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(30, 382);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(132, 13);
+            this.label7.TabIndex = 28;
+            this.label7.Text = "4. Restricciones cargadas";
             // 
             // GB_Condiciones
             // 
@@ -514,6 +525,7 @@
             this.Controls.Add(this.label1);
             this.Controls.Add(this.GB_NuevaRestriccion);
             this.Controls.Add(this.LB_listaRestricciones);
+            this.Controls.Add(this.label7);
             this.Name = "Form1_ext";
             this.Text = "Creación de plantillas";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.Form1_ext_FormClosing);
@@ -570,6 +582,7 @@
         private System.Windows.Forms.Label label4;
         private System.Windows.Forms.Label L_VolPTVcc;
         private System.Windows.Forms.Button BT_CargarDesdePaciente;
+        private System.Windows.Forms.Label label7;
     }
 }
 

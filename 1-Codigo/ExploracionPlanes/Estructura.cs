@@ -41,6 +41,40 @@ namespace ExploracionPlanes
             return null;
         }
 
+        // Distancia máxima de edición para sugerir/autoseleccionar un matcheo aproximado.
+        public const int DistanciaMaximaSugerida = 3;
+
+        public static int DistanciaDamerauLevenshtein(string a, string b)
+        {
+            a = (a ?? "").ToLowerInvariant();
+            b = (b ?? "").ToLowerInvariant();
+            int[,] d = new int[a.Length + 1, b.Length + 1];
+            for (int i = 0; i <= a.Length; i++) d[i, 0] = i;
+            for (int j = 0; j <= b.Length; j++) d[0, j] = j;
+            for (int i = 1; i <= a.Length; i++)
+            {
+                for (int j = 1; j <= b.Length; j++)
+                {
+                    int costo = a[i - 1] == b[j - 1] ? 0 : 1;
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + costo);
+                    if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
+                    {
+                        d[i, j] = Math.Min(d[i, j], d[i - 2, j - 2] + costo);
+                    }
+                }
+            }
+            return d[a.Length, b.Length];
+        }
+
+        // Estructuras del plan ordenadas de más a menos parecida a alguno de los nombresPosibles (menor distancia primero).
+        public static List<Tuple<Structure, int>> candidatosPorDistancia(List<string> listaNombres, List<Structure> listaEstructura)
+        {
+            return listaEstructura
+                .Select(s => new Tuple<Structure, int>(s, listaNombres.Min(n => DistanciaDamerauLevenshtein(n, s.Id))))
+                .OrderBy(t => t.Item2)
+                .ToList();
+        }
+
         public static List<Structure> listaEstructuras(PlanningItem plan) //CHEQUEAR FILTRAR POR TIPO
         {
             List<Structure> sinFiltrar = new List<Structure>();

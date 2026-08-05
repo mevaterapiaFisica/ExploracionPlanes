@@ -206,6 +206,7 @@
   <ItemGroup>
     <Compile Include="Analisis.cs" />
     <Compile Include="Chequeos.cs" />
+    <Compile Include="ColorearAnalisis.cs" />
     <Compile Include="Condicion.cs" />
     <Compile Include="Configuracion.cs" />
     <Compile Include="DesdeCSV.cs" />
@@ -258,6 +259,7 @@
       <DependentUpon>ImportarNombresEstructuras.cs</DependentUpon>
     </Compile>
     <Compile Include="Metodos.cs" />
+    <Compile Include="MemoriaPlan.cs" />
     <Compile Include="Mineria.cs" />
     <Compile Include="SeleccionarPTV.cs">
       <SubType>Form</SubType>

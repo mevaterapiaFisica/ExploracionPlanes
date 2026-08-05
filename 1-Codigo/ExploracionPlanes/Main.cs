@@ -77,7 +77,7 @@ namespace ExploracionPlanes
 
                     }
                 }
-                Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext);
+                Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
                 int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
                 LB_Plantillas.ClearSelected();
                 LB_Plantillas.SelectedIndex = indice;
@@ -109,7 +109,7 @@ namespace ExploracionPlanes
 
                         }
                     }
-                    Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext);
+                    Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
                     int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
                     LB_Plantillas.ClearSelected();
                     LB_Plantillas.SelectedIndex = indice;
@@ -188,6 +188,10 @@ namespace ExploracionPlanes
                         MessageBox.Show("Se encontró un plan con la extensión " + plantillaSeleccionada().ExtensionPlanMod() + " pero cuyo nombre no coincide con el plan a analizar\nRevisar si se nombró de forma adecuada");
                     }
                 }
+            }
+            if (hayContext && pacienteContext != null && planContext != null)
+            {
+                Plantilla.GuardarSeleccion(pacienteContext, planContext, plantillaSeleccionada().nombre);
             }
             aplicarPlantilla = new Form2(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, planMod);
             aplicarPlantilla.ShowDialog();

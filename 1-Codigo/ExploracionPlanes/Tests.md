@@ -88,6 +88,139 @@ TODOS LOS CHEQUEOS OK
 
 ---
 
+## 2026-08-04 — Fixes de robustez en comparación de dos planes (`Form2_DosPlanes.cs`)
+
+Bug reportado: "a veces falla el análisis" al comparar planes. Revisión de lógica encontró 5 problemas (ninguno confirmado aún como LA causa reportada, se corrigieron todos y se agregó logging para diagnosticar la próxima vez que aparezca):
+
+1. **`plan2` se auto-elegía con `.Where(...).First()`** (busca un plan cuyo Id contenga "cam") — tiraba `InvalidOperationException` sin mensaje al usuario si el curso no tenía ningún plan así. Solo pasa en modo standalone (`!hayContext`), en el plugin (`hayContext`) el segundo plan viene dado por Eclipse. Fix: `FirstOrDefault()` + aviso al usuario si no se encontró.
+2. **La asociación de estructuras (`DGV_Estructuras`) solo se resolvía contra `plan`**, y esa misma asociación (por ID) se reusaba para buscar la estructura en `plan2`. Si `plan2` tiene otro structure set con otros IDs, fallaba por estructura. Fix: nuevo método `estructuraCorrespondiente2` que re-asocia por nombre/alias directo contra el structure set de `plan2`, igual que se hace para `plan` en `asociarEstructuras()`.
+3. **No se chequeaba si `plan2` estaba calculado** (solo `plan`). Fix: mismo chequeo "no está calculado" para ambos planes.
+4. **Faltaba el filtro por `Condicion`** que sí tiene `Form2.cs` — se analizaban todas las restricciones de la plantilla sin importar si su condición (por nº de fracciones o volumen de PTV) se cumplía. Las restricciones condicionadas no están en uso activo todavía (pendiente de la importación de constraints SBRT/RC), pero se corrigió para no dejar la divergencia. Fix: mismo filtro `if (restriccion.condicion != null && !CumpleCondicion(...)) continue;` y diálogo de selección de PTV cuando la plantilla tiene condiciones de tipo VolPTV.
+5. **Índice de fila incorrecto**: `DGV_Analisis.Rows[i]` en vez de `Rows[j]` para pintar el botón de `RestriccionDosisMax`. Antes del fix #4, `i` y `j` siempre coincidían (nunca se salteaba una fila) así que no se notaba; con el filtro de #4 ya activo, una restricción salteada hace que `i` y `j` diverjan. Fix: usar `j` (índice real de fila) en todos los casos.
+6. **Logging**: se cambió `File.WriteAllText("log.txt", ...)` (sobreescribía el log en cada error, se perdía el historial) por un `logError()` compartido que hace `AppendAllText` con timestamp y contexto (paciente, IDs de ambos planes, restricción en curso). Se agregó `try/catch` por restricción dentro del loop de análisis (para que una restricción rota no tire abajo la comparación completa) y un `try/catch` general en `BT_Analizar_Click`.
+
+### Cómo se testeó
+
+Los puntos 1, 2, 3 y 6 dependen de ESAPI (no se pueden instanciar `PlanSetup`/`Structure`/`Course` fuera de Eclipse) y no tienen lógica de cálculo nueva — son guard clauses / manejo de excepciones directos, sin ramas que ameriten un test aislado.
+
+El punto 4+5 (filtro de `Condicion` + reindexado de filas) sí es lógica nueva pura, sin ESAPI: qué restricciones generan fila y en qué posición. Se armó `Tests/TestFiltroCondicion/` (standalone, `dotnet run`) que simula el loop viejo (sin filtro, fila = i) contra el nuevo (con filtro, fila = j), con 5 restricciones inventadas (2 marcadas como "no aplica"):
+
+```
+Filas (viejo, sin filtro): R0_PTV_D95, R1_MEDULA_5fx, R2_PULMON, R3_RIÑON_5fx, R4_HIGADO
+Filas (nuevo, con filtro): R0_PTV_D95, R2_PULMON, R4_HIGADO
+OK   Viejo analiza restricciones que no aplican (bug #4 reproducido)
+OK   Viejo agrega una fila por cada restricción de la plantilla, sin filtrar
+OK   Nuevo filtra las que no aplican (fix #4)
+OK   fix #5: R2 cae en la fila j=1 (no en i=2) tras saltear R1
+OK   fix #5: R4 cae en la fila j=2 (no en i=4) tras saltear R1 y R3
+
+TODOS LOS CHEQUEOS OK
+```
+
+Confirma que el nuevo loop filtra correctamente y que el índice de fila (`j`) usado para pintar el botón de `RestriccionDosisMax` sigue apuntando a la fila correcta aun cuando se saltean restricciones intermedias — el bug #5 (usar `i`) se hubiera notado recién con el fix #4 puesto, por eso valía la pena testear ambos juntos.
+
+### Pendiente / no corregido
+
+Al portar el filtro de `Condicion` desde `Form2.cs`, se notó que `colorCeldasAnidadas` (para restricciones `CondicionadaPor`) busca la fila de la restricción condicionante con `plantilla.listaRestricciones.IndexOf(restriccionCondicionante)` — eso da un índice en el espacio de la plantilla (`i`), pero se usa como índice de fila (`DGV_Analisis.Rows[...]`, espacio `j`). Si alguna restricción anterior a la condicionante se saltea, ese índice queda mal. Este bug ya existe igual en `Form2.cs` (no lo introduje yo, lo importé al portar el mismo patrón). No lo corregí porque las restricciones condicionadas no están en uso activo todavía — queda anotado para cuando se retome la importación de constraints SBRT/RC.
+
+---
+
+## 2026-08-05 — Matcheo aproximado, memoria por plan, reordenamiento de plantillas, duplicar estructura, ocultar no analizadas, unificar colores
+
+Seis cambios pedidos juntos sobre el flujo de análisis (`Form2.cs`, `Estructura.cs`, `Plantillla.cs`, `Main.cs`), más un archivo nuevo compartido `MemoriaPlan.cs`.
+
+### 1) Matcheo aproximado de estructuras (Damerau-Levenshtein)
+
+Antes: `Estructura.asociarConLista` solo hacía matcheo exacto (case-insensitive) contra `nombresPosibles`; si fallaba, quedaba en blanco (o memoria vieja por StructureSet).
+
+Ahora: `Estructura.DistanciaDamerauLevenshtein` + `Estructura.candidatosPorDistancia` (`Estructura.cs`) calculan la distancia de cada estructura del plan contra los nombres posibles. En `Form2.asociarEstructuras()`:
+- El combo de cada fila se llena ordenado por distancia ascendente (antes era el orden arbitrario de `Estructura.listaEstructurasID`).
+- Si hay match exacto, se usa ese (sin cambios de comportamiento).
+- Si no, y la memoria de plan no tiene una asociación válida, se autoselecciona el candidato más cercano si su distancia es `<= Estructura.DistanciaMaximaSugerida` (3); si no, queda en blanco para elección manual (igual que antes).
+
+### 2) Memoria de matcheo/prescripción: por plan, con fallback y manejo de errores
+
+Antes: la memoria (`paresEstructuras\` y `prescripciones\`) se guardaba por `PacienteID + StructureSetId` (dos planes con el mismo set de estructuras compartían memoria sin querer), sin fallback entre planes, y `leerArchivoParEstructura`/`leerArchivoPrescripcion` no tenían try/catch (una línea corrupta o el separador decimal `,` de la cultura es-AR colisionando con el separador de campo `,` producía crash o dato truncado silenciosamente).
+
+Ahora (`MemoriaPlan.cs` + `Form2.cs`):
+- Clave = `PacienteID_CursoId_PlanId` (por plan, vía `MemoriaPlan.clave`).
+- Si el plan actual no tiene memoria propia pero el paciente sí tiene en otro plan, se usa la del plan más reciente (`MemoriaPlan.rutaParaLeer`/`rutaArchivoFallbackPaciente`) como punto de partida; en cuanto el usuario analiza, se escribe en el archivo del plan actual (de ahí en adelante usa su propia memoria).
+- Lectura/escritura envueltas en try/catch (archivo corrupto o ruta de red caída avisa y no rompe la apertura del formulario).
+- Se fuerza `CultureInfo.InvariantCulture` al leer/escribir dosis, eliminando la colisión con el separador de campo.
+- Bug real corregido en `prescripcionPredefinida`: si el archivo de memoria existía pero no tenía la estructura puntual, el código viejo (`if/else if`) nunca llegaba a las heurísticas por nombre de plantilla (Cabeza/Prostata/Mama) y devolvía la prescripción física sin más. Ahora se busca la estructura específica en la memoria y, si no está, se aplican las heurísticas igual que si no hubiera memoria.
+
+### 3) Selección automática de plantilla: reordenamiento de criterios + memoria por plan
+
+Antes: `filtrarPorFracciones` (heurística de nombre `_Nfx`) se aplicaba **antes** de puntuar por coincidencia de estructuras, pudiendo descartar la plantilla que en realidad matchea mejor si no seguía esa convención de nombre.
+
+Ahora: se puntúan **todas** las plantillas por coincidencia de estructuras primero (criterio objetivo); el filtro por fracciones pasa a ser el primer desempate dentro de `reconocerPlantillaFino` (antes de imrt/hipo/der/pros), solo cuando hay empate de score. Se agregó memoria de plantilla seleccionada por plan (`Plantilla.GuardarSeleccion`/`plantillaRecordada`, misma clave y mismo fallback al plan más reciente del paciente que en el punto 2); si existe, se usa directamente sin correr la heurística. Se persiste al confirmar en `Main.BT_AplicarAUnPlan_Click`.
+
+### 4) Duplicar estructura a analizar
+
+Nuevo botón "Duplicar estructura" en `Form2` (junto a `DGV_Estructuras`): clona todas las restricciones del slot seleccionado bajo un nuevo slot `"Nombre (2)"` (usando el método `crear` que cada `IRestriccion` ya exponía), permitiendo matchear una segunda estructura real del plan y aplicar los mismos constraints por separado. Se guarda en memoria por plan (`duplicadosEstructura\`, mismo esquema de `MemoriaPlan`) y se reaplica automáticamente al reabrir el mismo plan.
+
+### 5) Ocultar restricciones no analizadas
+
+Nuevo checkbox `CHB_OcultarNoAnalizadas` en `Form2`, tildado por defecto. En `llenarDGVAnalisis`, las filas cuya estructura no pudo asociarse (`estructura == null`) quedan con `Visible = false` cuando el checkbox está tildado.
+
+### 6) Unificar coloreado pass/fail
+
+`Form2.colorCelda`/`colorCeldasAnidadas` y `Form2_DosPlanes.colorCelda`/`colorCeldasAnidadas` tenían la misma paleta duplicada palabra por palabra. Se extrajo a `ColorearAnalisis.cs` (clase estática compartida); ambos formularios delegan ahí. No se tocó la paleta en sí (mismos colores). **Unificación visual más amplia (fuentes/tamaños de botones entre Main/Form2/Form3) y evaluación de WPF quedaron fuera de este cambio**, a pedido explícito: requieren verificación visual en el Designer que no se puede hacer a ciegas editando texto.
+
+### Cómo se testeó
+
+Ninguna de las cuatro piezas de lógica nueva (Levenshtein, fallback de memoria por plan, reordenamiento de criterios, fix de `prescripcionPredefinida`) depende de ESAPI en su núcleo, así que se aisló cada una en `Tests/TestMejoras/` (standalone, `dotnet run`), reproduciendo viejo vs. nuevo comportamiento con datos inventados:
+
+```
+cd Tests/TestMejoras
+dotnet run
+```
+
+Resultado:
+
+```
+=== 1) Damerau-Levenshtein ===
+OK   Idénticas -> distancia 0
+OK   Case-insensitive -> distancia 0
+OK   Una sustitución -> distancia 1
+OK   Transposición adyacente cuenta como 1 (Damerau, no Levenshtein simple)
+OK   PTV_5400 vs PTV_5040 (transposición) distancia baja
+OK   Nombres muy distintos -> distancia alta
+Orden real: PTV(0), PTV_2(2), MEDULA(6)
+OK   Exacto primero
+OK   Aproximado (PTV_2) segundo, antes que MEDULA
+
+=== 2) Fallback de memoria por plan ===
+OK   Plan sin memoria propia cae al plan más reciente del paciente (Plan2, el último escrito)
+OK   Paciente sin ningún plan con memoria -> null (no rompe, deja en blanco)
+
+=== 3) Orden de criterios en SeleccionarAutomaticamentePlantilla ===
+OK   Viejo: el filtro por fracciones descarta a B aunque matchea mejor estructuras (bug reproducido)
+OK   Nuevo: puntúa primero, elige B (mejor match de estructuras) sin importar el nombre
+OK   Nuevo: con empate de score, fracciones desempata correctamente (elige C, 15fx)
+
+=== 4) prescripcionPredefinida: memoria parcial no debe tapar las heurísticas ===
+OK   Viejo: memoria existe pero no tiene 'WB' -> devuelve la prescripción física sin heurística (bug)
+OK   Nuevo: memoria no tiene 'WB' -> aplica la heurística de Mama (40.05)
+OK   Nuevo: memoria SÍ tiene 'Sb' -> usa la memoria (60), no la heurística
+
+TODOS LOS CHEQUEOS OK
+```
+
+El resto (duplicar estructura, checkbox ocultar, coloreado, wiring de `DataGridView`) depende de `PlanningItem`/`Structure`/`DataGridView` reales y del Designer — se verificó por lectura de código y compilación completa con MSBuild (VS2022), sin errores:
+
+```
+MSBuild ... ExploracionPlanes.csproj /t:Build
+  ExploracionPlanes -> ...\bin\Debug\ExploracionPlanes.exe
+```
+
+### Pendiente / diferido
+
+- **Unificación visual completa (fuentes, tamaños de botones) entre `Main`, `Form2` y `Form3`, y evaluación de migración a WPF**: quedan fuera de este cambio a pedido explícito del usuario (ver punto 6). Requieren abrir cada formulario en el Designer de Visual Studio y verificar visualmente — no es seguro hacerlo a ciegas editando los `.Designer.cs` a mano.
+- **Duplicar estructura**: no maneja el caso de una restricción `CondicionadaPor` (referencia a otra restricción por `etiqueta`) dentro del set duplicado — quedaría con la etiqueta de la restricción condicionante original, no la duplicada. No está en uso activo hoy (ver limitación ya documentada de restricciones condicionadas), se deja para cuando se retome esa funcionalidad.
+
+---
+
 ## Convención para tests futuros
 
 A partir de este cambio, todo cambio sobre código funcional debe incluir un test que compare comportamiento antes/después, documentado como una entrada nueva en este archivo (fecha, qué se cambió, cómo se testeó, números usados, resultado). Si el código depende de ESAPI y no se puede instanciar fuera de Eclipse, aislar la lógica pura afectada (como se hizo en `Tests/TestEQD2/`) en vez de omitir el test.

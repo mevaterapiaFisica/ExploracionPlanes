@@ -258,19 +258,26 @@ namespace ExploracionPlanes
             }
             return true;
         }
-        public static Plantilla SeleccionarAutomaticamentePlantilla(PlanningItem plan)
+        // Criterio principal: coincidencia real de estructuras (misma para todas las plantillas, plan o suma).
+        // Los demás criterios (fracciones, IMRT/3DC, hipo/normo, der/izq, prostata/pelvis) son heurísticas
+        // por nombre de plantilla, usadas solo para desempatar cuando dos o más plantillas matchean igual.
+        public static Plantilla SeleccionarAutomaticamentePlantilla(PlanningItem plan, Patient paciente = null)
         {
-            List<Tuple<Plantilla, double>> Coincidencias = new List<Tuple<Plantilla, double>>();
             List<Plantilla> plantillas = Plantilla.leerPlantillas();
-            if (plan is PlanSetup)
+
+            if (paciente != null)
             {
-                plantillas = filtrarPorFracciones(plantillas, (PlanSetup)plan);
+                Plantilla recordada = plantillaRecordada(paciente, plan, plantillas);
+                if (recordada != null)
+                {
+                    return recordada;
+                }
             }
+
             List<Structure> estructurasPlan = Estructura.listaEstructuras(plan);
-            foreach (Plantilla plantilla in plantillas)
-            {
-                Coincidencias.Add(new Tuple<Plantilla, double>(plantilla, plantilla.ContarEstructurasCoincidentes(estructurasPlan)));
-            }
+            List<Tuple<Plantilla, double>> Coincidencias = plantillas
+                .Select(p => new Tuple<Plantilla, double>(p, p.ContarEstructurasCoincidentes(estructurasPlan)))
+                .ToList();
             double mayorCoincidencia = Coincidencias.OrderByDescending(c => c.Item2).First().Item2;
             List<Plantilla> plantillasMayorCoincidencia = Coincidencias.Where(c => c.Item2 == mayorCoincidencia).Select(t => t.Item1).ToList();
             if (plantillasMayorCoincidencia.Count() > 1)
@@ -290,25 +297,48 @@ namespace ExploracionPlanes
 
         }
 
-        public static List<Plantilla> filtrarPorFracciones(List<Plantilla> plantillas, PlanSetup planSetup)
-        {
-            int numFx = planSetup.UniqueFractionation.NumberOfFractions.Value;
-            var plantillas_filtradas = plantillas.Where(p => p.nombre.Contains("_" + numFx.ToString() + "fx")).ToList();
-            if (plantillas_filtradas != null & plantillas_filtradas.Count() > 0)
-            {
-                return plantillas_filtradas;
-            }
-            else
-            {
-                return plantillas;
-            }
+        private static string pathMemoriaSeleccion => Properties.Settings.Default.Path + @"\plantillaSeleccionada\";
 
+        public static void GuardarSeleccion(Patient paciente, PlanningItem plan, string nombrePlantilla)
+        {
+            try
+            {
+                File.WriteAllText(MemoriaPlan.rutaArchivo(pathMemoriaSeleccion, paciente, plan), nombrePlantilla);
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo guardar la memoria de plantilla seleccionada:\n" + exp.Message);
+            }
+        }
+
+        private static Plantilla plantillaRecordada(Patient paciente, PlanningItem plan, List<Plantilla> plantillas)
+        {
+            string ruta = MemoriaPlan.rutaParaLeer(pathMemoriaSeleccion, paciente, plan);
+            if (ruta == null)
+            {
+                return null;
+            }
+            try
+            {
+                string nombre = File.ReadAllText(ruta).Trim();
+                return plantillas.FirstOrDefault(p => p.nombre == nombre);
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo leer la memoria de plantilla seleccionada:\n" + exp.Message);
+                return null;
+            }
         }
 
         private static Plantilla reconocerPlantillaFino(List<Plantilla> plantillas, PlanSetup planSetup)
         {
             IQueryable<Plantilla> query = plantillas.AsQueryable();
 
+            int numFx = (int)planSetup.UniqueFractionation.NumberOfFractions;
+            if (query.Count() > 1 && query.Any(p => p.nombre.Contains("_" + numFx + "fx")))
+            {
+                query = query.Where(p => p.nombre.Contains("_" + numFx + "fx")).AsQueryable();
+            }
             if (query.Count() > 1 && query.Any(p => p.nombre.ToLower().Contains("imrt")))
             {
                 if (planSetup.Beams.First().ControlPoints.Count > 20) //Es IMRT o VMAT

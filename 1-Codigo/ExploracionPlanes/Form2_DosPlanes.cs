@@ -29,6 +29,7 @@ namespace ExploracionPlanes
         User usuario;
         Plantilla plantilla;
         bool hayContext = false;
+        Structure ptvCondicion;
         PrintDialog printDialog1 = new PrintDialog();
         PrintPreviewDialog printPreviewDialog1 = new PrintPreviewDialog();
         VMS.TPS.Common.Model.API.Application app;
@@ -128,7 +129,11 @@ namespace ExploracionPlanes
             else if (LB_Planes.SelectedItems.Count == 1)
             {
                 plan = (PlanningItem)LB_Planes.SelectedItems[0];
-                plan2 = cursoSeleccionado().PlanSetups.Where(p => p.Id.ToLower().Contains("cam")).First();
+                plan2 = cursoSeleccionado().PlanSetups.FirstOrDefault(p => p.Id.ToLower().Contains("cam"));
+                if (plan2 == null)
+                {
+                    MessageBox.Show("No se encontró en el curso un plan cuyo nombre contenga \"cam\" para comparar.");
+                }
                 return (PlanningItem)LB_Planes.SelectedItems[0];
             }
             else
@@ -330,6 +335,16 @@ namespace ExploracionPlanes
                 MessageBox.Show("El plan no está calculado");
                 return;
             }
+            if (plan2 is PlanSetup && ((PlanSetup)plan2).Dose == null)
+            {
+                MessageBox.Show("El segundo plan no está calculado");
+                return;
+            }
+            else if (plan2 is PlanSum && ((PlanSum)plan2).Dose == null)
+            {
+                MessageBox.Show("El segundo plan no está calculado");
+                return;
+            }
             DGV_Analisis.ReadOnly = true;
             DGV_Analisis.Rows.Clear();
 
@@ -345,21 +360,77 @@ namespace ExploracionPlanes
             {
                 DGV_Analisis.Columns[1].Visible = true;
             }
+            if (plantilla.tieneCondicionesTipo1())
+            {
+                SeleccionarPTV seleccionarPTV = new SeleccionarPTV(Estructura.ptvs(plan));
+                seleccionarPTV.ShowDialog();
+                ptvCondicion = seleccionarPTV.ptv;
+            }
             int j = 0;
             for (int i = 0; i < plantilla.listaRestricciones.Count; i++)
             {
-                PlanningItem planRestriccion = null;
                 IRestriccion restriccion = plantilla.listaRestricciones[i];
-                if (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null)
+                if (restriccion.condicion != null && !restriccion.condicion.CumpleCondicion(plan, ptvCondicion))
                 {
-                    planRestriccion = planMod;
+                    continue;
+                }
+                try
+                {
+                    analizarRestriccion(restriccion, j);
+                }
+                catch (Exception ex)
+                {
+                    logError($"llenarDGVAnalisis - restriccion '{restriccion.etiqueta}' paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", ex);
+                    DGV_Analisis.Rows[j].Cells[4].Value = "ERROR";
+                    DGV_Analisis.Rows[j].Cells[4].Style.BackColor = System.Drawing.Color.Red;
+                    MessageBox.Show("Error al analizar la restricción \"" + restriccion.etiqueta + "\":\n" + ex.Message + "\n\nSe registró el detalle en log.txt");
+                }
+                j++;
+            }
+            DGV_Analisis.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            if (plantilla.TieneRestriccionEnPlanMod())
+            {
+                L_Advertencia.Visible = true;
+                if (planMod != null)
+                {
+                    L_Advertencia.Text = "* Restricciones evaluadas en " + planMod.Id;
+                    plantilla.nota += "\r\n* Restricciones evaluadas en " + planMod.Id;
                 }
                 else
                 {
-                    planRestriccion = plan;
+                    L_Advertencia.Text = "* Restricciones evaluadas en " + plan.Id;
                 }
-                Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
-                DGV_Analisis.Rows.Add();
+
+                L_Advertencia2.Visible = true;
+                if (plan2Mod != null)
+                {
+                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2Mod.Id;
+                    plantilla.nota += "\r\n* Restricciones evaluadas en " + plan2Mod.Id;
+                }
+                else
+                {
+                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2.Id;
+                }
+            }
+            else
+            {
+                L_Advertencia.Visible = false;
+            }
+        }
+
+        private void analizarRestriccion(IRestriccion restriccion, int j)
+        {
+            PlanningItem planRestriccion;
+            if (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null)
+            {
+                planRestriccion = planMod;
+            }
+            else
+            {
+                planRestriccion = plan;
+            }
+            Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
+            DGV_Analisis.Rows.Add();
                 DGV_Analisis.Rows[j].Cells[0].Value = Estructura.nombreEnDiccionario(restriccion.estructura);
                 DGV_Analisis.Rows[j].Cells[2].Value = restriccion.metrica();
                 if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
@@ -424,7 +495,7 @@ namespace ExploracionPlanes
                     {
                         plan2Restriccion = plan2;
                     }
-                    estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan2);
+                    estructura = estructuraCorrespondiente2(restriccion.estructura, plan2);
                     if (estructura == null)
                     {
                         MessageBox.Show("No se encontró la estructura " + restriccion.estructura.nombre + " en el " + plan2.Id + ".\nNo se pude realizar el análisis");
@@ -453,7 +524,7 @@ namespace ExploracionPlanes
 
                         if (restriccion.GetType() == typeof(RestriccionDosisMax))
                         {
-                            DataGridViewButtonCell bt = (DataGridViewButtonCell)DGV_Analisis.Rows[i].Cells[8];
+                            DataGridViewButtonCell bt = (DataGridViewButtonCell)DGV_Analisis.Rows[j].Cells[8];
                             bt.FlatStyle = FlatStyle.System;
                             bt.Style.BackColor = System.Drawing.Color.LightGray;
                             bt.Style.ForeColor = System.Drawing.Color.Black;
@@ -465,37 +536,6 @@ namespace ExploracionPlanes
                     }
 
                 }
-                j++;
-            }
-            DGV_Analisis.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-            if (plantilla.TieneRestriccionEnPlanMod())
-            {
-                L_Advertencia.Visible = true;
-                if (planMod != null)
-                {
-                    L_Advertencia.Text = "* Restricciones evaluadas en " + planMod.Id;
-                    plantilla.nota += "\r\n* Restricciones evaluadas en " + planMod.Id;
-                }
-                else
-                {
-                    L_Advertencia.Text = "* Restricciones evaluadas en " + plan.Id;
-                }
-
-                L_Advertencia2.Visible = true;
-                if (plan2Mod != null)
-                {
-                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2Mod.Id;
-                    plantilla.nota += "\r\n* Restricciones evaluadas en " + plan2Mod.Id;
-                }
-                else
-                {
-                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2.Id;
-                }
-            }
-            else
-            {
-                L_Advertencia.Visible = false;
-            }
         }
 
         private Structure estructuraCorrespondiente(string nombreEstructura, PlanningItem plan)
@@ -511,6 +551,15 @@ namespace ExploracionPlanes
             return null;
         }
 
+        // El ID de estructura en DGV_Estructuras se asocia solo contra "plan" (asociarEstructuras()).
+        // plan2 puede tener un structure set distinto (otro Id para la misma estructura), así que
+        // para plan2 se re-asocia por nombre/alias directamente contra su propio structure set,
+        // en vez de reusar el ID resuelto para plan.
+        private Structure estructuraCorrespondiente2(Estructura estructuraTemplate, PlanningItem plan2)
+        {
+            return Estructura.asociarConLista(estructuraTemplate.nombresPosibles, Estructura.listaEstructuras(plan2));
+        }
+
         private string infoPlan()
         {
             string infoPlan = planSeleccionado().Id;
@@ -523,44 +572,26 @@ namespace ExploracionPlanes
 
         private void BT_Analizar_Click(object sender, EventArgs e)
         {
-            aplicarPrescripciones();
-            llenarDGVAnalisis();
-            Form2.escribirArchivoParEstructuras(listaParesEstructuras(), Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
+            try
+            {
+                aplicarPrescripciones();
+                llenarDGVAnalisis();
+                Form2.escribirArchivoParEstructuras(listaParesEstructuras(), Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
+            }
+            catch (Exception ex)
+            {
+                logError($"BT_Analizar_Click paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", ex);
+                MessageBox.Show("Error al analizar la plantilla:\n" + ex.Message + "\n\nSe registró el detalle en log.txt");
+            }
         }
 
         private void colorCelda(DataGridViewCell celda, IRestriccion restriccion)
         {
-            if (restriccion.cumple() == 0)
-            {
-                celda.Style.BackColor = System.Drawing.Color.LightGreen;
-            }
-            else if (restriccion.cumple() == 1)
-            {
-                celda.Style.BackColor = System.Drawing.Color.LightYellow;
-            }
-            else
-            {
-                celda.Style.BackColor = System.Drawing.Color.Red;
-            }
+            ColorearAnalisis.colorCelda(celda, restriccion);
         }
         private void colorCeldasAnidadas(IRestriccion restriccionCondicionante, DataGridViewCell celdaCondicionante, IRestriccion restriccionCondicionada, DataGridViewCell celdaCondicionada)
         {
-            if (restriccionCondicionante.cumple() == 0)
-            {
-                celdaCondicionante.Style.BackColor = System.Drawing.Color.LightGreen;
-                celdaCondicionada.Style.BackColor = System.Drawing.Color.LightGreen;
-            }
-            else if (restriccionCondicionante.cumple() == 2 && restriccionCondicionada.cumple() == 0)
-            {
-                celdaCondicionante.Style.BackColor = System.Drawing.Color.LightYellow;
-                celdaCondicionada.Style.BackColor = System.Drawing.Color.LightYellow;
-            }
-            else if (restriccionCondicionante.cumple() == 2 && restriccionCondicionada.cumple() == 2)
-            {
-                celdaCondicionante.Style.BackColor = System.Drawing.Color.Red;
-                celdaCondicionada.Style.BackColor = System.Drawing.Color.Red;
-            }
-
+            ColorearAnalisis.colorCeldasAnidadas(restriccionCondicionante, celdaCondicionante, restriccionCondicionada, celdaCondicionada);
         }
 
         private void BT_SeleccionarPlan_Click(object sender, EventArgs e)
@@ -572,7 +603,20 @@ namespace ExploracionPlanes
             }
             catch (Exception exp)
             {
-                File.WriteAllText("log.txt", exp.ToString());
+                logError($"BT_SeleccionarPlan_Click paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", exp);
+                MessageBox.Show("Error al seleccionar el plan:\n" + exp.Message + "\n\nSe registró el detalle en log.txt");
+            }
+        }
+
+        // ponytail: log a archivo plano, sin rotación; si el log crece mucho hay que pasarlo a algo con rotación
+        private static void logError(string contexto, Exception ex)
+        {
+            try
+            {
+                File.AppendAllText("log.txt", $"\r\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {contexto}\r\n{ex}\r\n");
+            }
+            catch (Exception)
+            {
             }
         }
 

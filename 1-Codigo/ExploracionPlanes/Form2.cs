@@ -33,6 +33,7 @@ namespace ExploracionPlanes
         VMS.TPS.Common.Model.API.Application app;
         static string pathParEstructuras => Properties.Settings.Default.Path + @"\paresEstructuras\";
         static string pathPrescripciones => Properties.Settings.Default.Path + @"\prescripciones\";
+        static string pathDuplicados => Properties.Settings.Default.Path + @"\duplicadosEstructura\";
         public static string pathReportesJson => Properties.Settings.Default.Path + @"\Reportes\Json\";
         string plantillaNotaOriginal = "";
 
@@ -50,6 +51,7 @@ namespace ExploracionPlanes
                 planMod = _planMod;
                 usuario = _usuarioContext;
                 prepararControlesContext();
+                aplicarDuplicadosGuardados();
                 llenarDGVEstructuras();
                 llenarDGVPrescripciones();
                 BT_Analizar.Enabled = true;
@@ -271,39 +273,146 @@ namespace ExploracionPlanes
 
         private void asociarEstructuras()
         {
-            bool existeArchivoPar = File.Exists(nombreArchivoParEstructura(paciente, planSeleccionado()));
-            List<parEstructura> lista = new List<parEstructura>();
-            if (existeArchivoPar)
-            {
-                lista = leerArchivoParEstructura(nombreArchivoParEstructura(paciente, planSeleccionado()));
-            }
+            List<parEstructura> memoria = memoriaEstructuras(paciente, planSeleccionado());
+            List<Structure> estructurasPlan = Estructura.listaEstructuras(planSeleccionado());
             for (int i = 0; i < DGV_Estructuras.Rows.Count; i++)
             {
-                Structure estructura = Estructura.asociarConLista(plantilla.estructuras()[i].nombresPosibles, Estructura.listaEstructuras(planSeleccionado()));
-                if (estructura != null)
+                string nombreSlot = DGV_Estructuras.Rows[i].Cells[0].Value.ToString();
+                List<string> nombresPosibles = plantilla.estructuras()[i].nombresPosibles;
+                var candidatos = Estructura.candidatosPorDistancia(nombresPosibles, estructurasPlan);
+
+                // El combo de esta fila se ordena de más a menos parecido (Damerau-Levenshtein) en vez del orden arbitrario del plan.
+                var cell = (DataGridViewComboBoxCell)DGV_Estructuras.Rows[i].Cells[1];
+                List<string> itemsOrdenados = candidatos.Select(c => c.Item1.Id).ToList();
+                itemsOrdenados.Add("");
+                cell.DataSource = itemsOrdenados;
+
+                Structure estructuraExacta = Estructura.asociarConLista(nombresPosibles, estructurasPlan);
+                if (estructuraExacta != null)
                 {
-                    (DGV_Estructuras.Rows[i].Cells[1]).Value = estructura.Id;
+                    cell.Value = estructuraExacta.Id;
+                    continue;
+                }
+                string idMemoria = structureDeEstructura(nombreSlot, memoria);
+                if (!string.IsNullOrEmpty(idMemoria) && itemsOrdenados.Contains(idMemoria))
+                {
+                    cell.Value = idMemoria;
+                }
+                else if (candidatos.Count > 0 && candidatos[0].Item2 <= Estructura.DistanciaMaximaSugerida)
+                {
+                    cell.Value = candidatos[0].Item1.Id;
                 }
                 else
                 {
-                    if (existeArchivoPar)
-                    {
-                        string structureID = structureDeEstructura(DGV_Estructuras.Rows[i].Cells[0].Value.ToString(), lista);
-                        if (structureID!= null && ((DataGridViewComboBoxCell)DGV_Estructuras.Rows[i].Cells[1]).Items.Contains(structureID))
-                        {
-                            DGV_Estructuras.Rows[i].Cells[1].Value = structureID;
-                        }
-                        else
-                        {
-                            (DGV_Estructuras.Rows[i].Cells[1]).Value = "";
-                        }
+                    cell.Value = "";
+                }
+            }
+        }
 
-                    }
-                    else
+        // Clona todas las restricciones de nombreSlot bajo un nuevo slot "nombreSlot (n)", para poder
+        // matchear un mismo tipo de restricción (ej. PTV) con una segunda estructura real del plan.
+        private void duplicarEstructura(string nombreSlot)
+        {
+            List<IRestriccion> originales = plantilla.listaRestricciones.Where(r => r.estructura.nombre == nombreSlot).ToList();
+            if (originales.Count == 0)
+            {
+                return;
+            }
+            int copia = 2;
+            while (plantilla.listaRestricciones.Any(r => r.estructura.nombre == nombreSlot + " (" + copia + ")"))
+            {
+                copia++;
+            }
+            Estructura estructuraNueva = Estructura.crear(nombreSlot + " (" + copia + ")", new List<string>(originales[0].estructura.nombresPosibles));
+            int indiceInsercion = plantilla.listaRestricciones.IndexOf(originales.Last()) + 1;
+            foreach (IRestriccion original in originales)
+            {
+                IRestriccion clon = original.crear(estructuraNueva, original.unidadValor, original.unidadCorrespondiente, original.esMenorQue,
+                    original.valorEsperado, original.valorTolerado, original.valorCorrespondiente, original.nota, original.condicion, original.prioridad, original.planMod);
+                plantilla.listaRestricciones.Insert(indiceInsercion, clon);
+                indiceInsercion++;
+            }
+        }
+
+        private void BT_DuplicarEstructura_Click(object sender, EventArgs e)
+        {
+            if (DGV_Estructuras.CurrentRow == null)
+            {
+                MessageBox.Show("Seleccione primero la fila de la estructura a duplicar.");
+                return;
+            }
+            string nombreSlot = DGV_Estructuras.CurrentRow.Cells[0].Value.ToString();
+            duplicarEstructura(nombreSlot);
+            llenarDGVEstructuras();
+        }
+
+        // Guarda en memoria (por plan) cuántas copias tiene cada slot duplicado, derivándolo de los
+        // nombres de estructura actuales (sufijo " (n)"), para volver a aplicarlos al reabrir el plan.
+        private void guardarDuplicados()
+        {
+            var duplicados = plantilla.listaRestricciones
+                .Select(r => System.Text.RegularExpressions.Regex.Match(r.estructura.nombre, @"^(.*) \((\d+)\)$"))
+                .Where(m => m.Success)
+                .GroupBy(m => m.Groups[1].Value)
+                .Select(g => new { Base = g.Key, Max = g.Max(m => int.Parse(m.Groups[2].Value)) });
+            string ruta = nombreArchivoDuplicados(paciente, planSeleccionado());
+            try
+            {
+                using (StreamWriter file = new StreamWriter(ruta))
+                {
+                    foreach (var d in duplicados)
                     {
-                        (DGV_Estructuras.Rows[i].Cells[1]).Value = "";
+                        file.WriteLine(d.Base + "," + d.Max);
                     }
                 }
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo guardar la memoria de estructuras duplicadas:\n" + exp.Message);
+            }
+        }
+
+        private void aplicarDuplicadosGuardados()
+        {
+            string ruta = MemoriaPlan.rutaParaLeer(pathDuplicados, paciente, planSeleccionado());
+            if (ruta == null)
+            {
+                return;
+            }
+            try
+            {
+                foreach (string linea in File.ReadAllLines(ruta))
+                {
+                    string[] aux = linea.Split(',');
+                    if (aux.Length < 2 || !int.TryParse(aux[1], out int cantidad))
+                    {
+                        continue;
+                    }
+                    for (int copia = 2; copia <= cantidad; copia++)
+                    {
+                        if (!plantilla.listaRestricciones.Any(r => r.estructura.nombre == aux[0] + " (" + copia + ")"))
+                        {
+                            duplicarEstructura(aux[0]);
+                        }
+                    }
+                }
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo leer la memoria de estructuras duplicadas:\n" + exp.Message);
+            }
+        }
+
+        public static string nombreArchivoDuplicados(Patient paciente, PlanningItem plan)
+        {
+            return MemoriaPlan.rutaArchivo(pathDuplicados, paciente, plan);
+        }
+
+        private void CHB_OcultarNoAnalizadas_CheckedChanged(object sender, EventArgs e)
+        {
+            if (DGV_Análisis.Rows.Count > 0)
+            {
+                llenarDGVAnalisis();
             }
         }
 
@@ -375,6 +484,10 @@ namespace ExploracionPlanes
                 {
                     Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre);
                     DGV_Análisis.Rows.Add();
+                    if (estructura == null && CHB_OcultarNoAnalizadas.Checked)
+                    {
+                        DGV_Análisis.Rows[j].Visible = false;
+                    }
                     DGV_Análisis.Rows[j].Cells[0].Value = Estructura.nombreEnDiccionario(restriccion.estructura);
                     DGV_Análisis.Rows[j].Cells[2].Value = restriccion.metrica();
                     if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
@@ -537,6 +650,7 @@ namespace ExploracionPlanes
             llenarDGVAnalisis();
             escribirArchivoParEstructuras(listaParesEstructuras(), nombreArchivoParEstructura(paciente, planSeleccionado()));
             escribirArchivoPrescripciones(listaPrescripcion(), nombreArchivoPrescripciones(paciente, planSeleccionado()));
+            guardarDuplicados();
             if (plantilla.nombre.Contains("SunRise"))
             {
                 DGV_Análisis.Columns[0].HeaderText = "Structure";
@@ -549,49 +663,19 @@ namespace ExploracionPlanes
 
         private void colorCelda(DataGridViewCell celda, IRestriccion restriccion)
         {
-            if (restriccion.valorEsperado==double.NaN)
-            {
-                
-            }
-            else if (restriccion.cumple() == 0)
-            {
-                celda.Style.BackColor = System.Drawing.Color.LightGreen;
-            }
-            else if (restriccion.cumple() == 1)
-            {
-                celda.Style.BackColor = System.Drawing.Color.LightYellow;
-            }
-            else
-            {
-                celda.Style.BackColor = System.Drawing.Color.Red;
-            }
+            ColorearAnalisis.colorCelda(celda, restriccion);
         }
         private void colorCeldasAnidadas(IRestriccion restriccionCondicionante, DataGridViewCell celdaCondicionante, IRestriccion restriccionCondicionada, DataGridViewCell celdaCondicionada)
         {
-            if (restriccionCondicionante.cumple() == 0)
-            {
-                celdaCondicionante.Style.BackColor = System.Drawing.Color.LightGreen;
-                celdaCondicionada.Style.BackColor = System.Drawing.Color.LightGreen;
-            }
-            else if (restriccionCondicionante.cumple() == 2 && restriccionCondicionada.cumple() == 0)
-            {
-                celdaCondicionante.Style.BackColor = System.Drawing.Color.LightYellow;
-                celdaCondicionada.Style.BackColor = System.Drawing.Color.LightYellow;
-            }
-            else if (restriccionCondicionante.cumple() == 2 && restriccionCondicionada.cumple() == 2)
-            {
-                celdaCondicionante.Style.BackColor = System.Drawing.Color.Red;
-                celdaCondicionada.Style.BackColor = System.Drawing.Color.Red;
-            }
-
+            ColorearAnalisis.colorCeldasAnidadas(restriccionCondicionante, celdaCondicionante, restriccionCondicionada, celdaCondicionada);
         }
         private void BT_SeleccionarPlan_Click(object sender, EventArgs e)
         {
             try
             {
-                var plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planSeleccionado());
+                var plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planSeleccionado(), paciente);
 
-
+                aplicarDuplicadosGuardados();
                 llenarDGVEstructuras();
                 planSeleccionado();
                 llenarDGVPrescripciones();
@@ -719,26 +803,37 @@ namespace ExploracionPlanes
 
         public static void escribirArchivoParEstructuras(List<parEstructura> lista, string archivo)
         {
-
-            using (StreamWriter file = new StreamWriter(archivo))
+            try
             {
-                int i = 0;
-                foreach (parEstructura par in lista)
+                using (StreamWriter file = new StreamWriter(archivo))
                 {
-                    file.WriteLine(par.estructuraNombre + "," + par.structureID);
+                    foreach (parEstructura par in lista)
+                    {
+                        file.WriteLine(par.estructuraNombre + "," + par.structureID);
+                    }
                 }
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo guardar la memoria de estructuras:\n" + exp.Message);
             }
         }
 
         public static void escribirArchivoPrescripciones(List<prescripcion> lista, string archivo)
         {
-            using (StreamWriter file = new StreamWriter(archivo))
+            try
             {
-                int i = 0;
-                foreach (prescripcion presc in lista)
+                using (StreamWriter file = new StreamWriter(archivo))
                 {
-                    file.WriteLine(presc.estructura + "," + presc.dosis);
+                    foreach (prescripcion presc in lista)
+                    {
+                        file.WriteLine(presc.estructura + "," + presc.dosis.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                    }
                 }
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo guardar la memoria de prescripciones:\n" + exp.Message);
             }
         }
 
@@ -746,19 +841,21 @@ namespace ExploracionPlanes
         public static List<parEstructura> leerArchivoParEstructura(string archivo)
         {
             List<parEstructura> lista = new List<parEstructura>();
-            using (StreamReader file = new StreamReader(archivo))
+            try
             {
-
-                while (!file.EndOfStream)
+                foreach (string linea in File.ReadAllLines(archivo))
                 {
-                    string[] aux = file.ReadLine().Split(',');
-                    parEstructura par = new parEstructura()
+                    string[] aux = linea.Split(',');
+                    if (aux.Length < 2 || string.IsNullOrEmpty(aux[0]))
                     {
-                        estructuraNombre = aux[0],
-                        structureID = aux[1],
-                    };
-                    lista.Add(par);
+                        continue;
+                    }
+                    lista.Add(new parEstructura() { estructuraNombre = aux[0], structureID = aux[1] });
                 }
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo leer la memoria de estructuras (" + Path.GetFileName(archivo) + "):\n" + exp.Message);
             }
             return lista;
         }
@@ -766,19 +863,24 @@ namespace ExploracionPlanes
         public static List<prescripcion> leerArchivoPrescripcion(string archivo)
         {
             List<prescripcion> lista = new List<prescripcion>();
-            using (StreamReader file = new StreamReader(archivo))
+            try
             {
-
-                while (!file.EndOfStream)
+                foreach (string linea in File.ReadAllLines(archivo))
                 {
-                    string[] aux = file.ReadLine().Split(',');
-                    prescripcion presc = new prescripcion()
+                    string[] aux = linea.Split(',');
+                    if (aux.Length < 2 || string.IsNullOrEmpty(aux[0]))
                     {
-                        estructura = aux[0],
-                        dosis = Convert.ToDouble(aux[1]),
-                    };
-                    lista.Add(presc);
+                        continue;
+                    }
+                    if (double.TryParse(aux[1], System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out double dosis))
+                    {
+                        lista.Add(new prescripcion() { estructura = aux[0], dosis = dosis });
+                    }
                 }
+            }
+            catch (Exception exp)
+            {
+                MessageBox.Show("No se pudo leer la memoria de prescripciones (" + Path.GetFileName(archivo) + "):\n" + exp.Message);
             }
             return lista;
         }
@@ -788,44 +890,26 @@ namespace ExploracionPlanes
             return lista.Find(p => p.estructuraNombre == estructuraNombreBusca).structureID;
         }
 
+        private static List<parEstructura> memoriaEstructuras(Patient paciente, PlanningItem plan)
+        {
+            string ruta = MemoriaPlan.rutaParaLeer(pathParEstructuras, paciente, plan);
+            return ruta != null ? leerArchivoParEstructura(ruta) : new List<parEstructura>();
+        }
+
+        private static List<prescripcion> memoriaPrescripciones(Patient paciente, PlanningItem plan)
+        {
+            string ruta = MemoriaPlan.rutaParaLeer(pathPrescripciones, paciente, plan);
+            return ruta != null ? leerArchivoPrescripcion(ruta) : new List<prescripcion>();
+        }
+
         public static string nombreArchivoParEstructura(Patient paciente, PlanningItem plan)
         {
-
-            if (!Directory.Exists(pathParEstructuras))
-            {
-                Directory.CreateDirectory(pathParEstructuras);
-            }
-            string nombre;
-
-            if (plan is PlanSetup)
-            {
-                nombre = pathParEstructuras + paciente.Id + ((PlanSetup)plan).StructureSet.Id + ".txt";
-            }
-            else
-            {
-                nombre = pathParEstructuras + paciente.Id + ((PlanSum)plan).StructureSet.Id + ".txt";
-            }
-            return nombre;
+            return MemoriaPlan.rutaArchivo(pathParEstructuras, paciente, plan);
         }
 
         public static string nombreArchivoPrescripciones(Patient paciente, PlanningItem plan)
         {
-
-            if (!Directory.Exists(pathPrescripciones))
-            {
-                Directory.CreateDirectory(pathPrescripciones);
-            }
-            string nombre;
-
-            if (plan is PlanSetup)
-            {
-                nombre = pathPrescripciones + paciente.Id + ((PlanSetup)plan).StructureSet.Id + ".txt";
-            }
-            else
-            {
-                nombre = pathPrescripciones + paciente.Id + ((PlanSum)plan).StructureSet.Id + ".txt";
-            }
-            return nombre;
+            return MemoriaPlan.rutaArchivo(pathPrescripciones, paciente, plan);
         }
 
         #region Imprimir
@@ -955,15 +1039,12 @@ namespace ExploracionPlanes
 
         public static double prescripcionPredefinida(Estructura estructura, Plantilla plantilla, double prescripcion, Patient paciente, PlanningItem planSeleccionado)
         {
-            if (File.Exists(nombreArchivoPrescripciones(paciente, planSeleccionado)))
+            List<prescripcion> memoria = memoriaPrescripciones(paciente, planSeleccionado);
+            if (memoria.Any(p => p.estructura == estructura.nombre))
             {
-                List<prescripcion> lista = leerArchivoPrescripcion(nombreArchivoPrescripciones(paciente, planSeleccionado));
-                if (lista.Any(p=>p.estructura==estructura.nombre))
-                {
-                    return lista.First(p => p.estructura == estructura.nombre).dosis;
-                }
+                return memoria.First(p => p.estructura == estructura.nombre).dosis;
             }
-            else if (plantilla.nombre.Contains("Cabeza"))
+            if (plantilla.nombre.Contains("Cabeza"))
             {
                 if (estructura.nombre.Contains("Mid"))
                 {

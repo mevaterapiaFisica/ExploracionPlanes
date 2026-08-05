@@ -61,6 +61,8 @@
             this.L_NombrePaciente = new System.Windows.Forms.Label();
             this.CHB_EvaluarConEQD2 = new System.Windows.Forms.CheckBox();
             this.L_Advertencia = new System.Windows.Forms.Label();
+            this.BT_DuplicarEstructura = new System.Windows.Forms.Button();
+            this.CHB_OcultarNoAnalizadas = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_Estructuras)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_Análisis)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_Prescripciones)).BeginInit();
@@ -375,11 +377,36 @@
             this.L_Advertencia.Text = "Advertencia";
             this.L_Advertencia.Visible = false;
             // 
+            // BT_DuplicarEstructura
+            // 
+            this.BT_DuplicarEstructura.Location = new System.Drawing.Point(438, 30);
+            this.BT_DuplicarEstructura.Name = "BT_DuplicarEstructura";
+            this.BT_DuplicarEstructura.Size = new System.Drawing.Size(65, 40);
+            this.BT_DuplicarEstructura.TabIndex = 29;
+            this.BT_DuplicarEstructura.Text = "Duplicar estructura";
+            this.BT_DuplicarEstructura.UseVisualStyleBackColor = true;
+            this.BT_DuplicarEstructura.Click += new System.EventHandler(this.BT_DuplicarEstructura_Click);
+            // 
+            // CHB_OcultarNoAnalizadas
+            // 
+            this.CHB_OcultarNoAnalizadas.AutoSize = true;
+            this.CHB_OcultarNoAnalizadas.Checked = true;
+            this.CHB_OcultarNoAnalizadas.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.CHB_OcultarNoAnalizadas.Location = new System.Drawing.Point(726, 546);
+            this.CHB_OcultarNoAnalizadas.Name = "CHB_OcultarNoAnalizadas";
+            this.CHB_OcultarNoAnalizadas.Size = new System.Drawing.Size(151, 17);
+            this.CHB_OcultarNoAnalizadas.TabIndex = 30;
+            this.CHB_OcultarNoAnalizadas.Text = "Ocultar no analizadas";
+            this.CHB_OcultarNoAnalizadas.UseVisualStyleBackColor = true;
+            this.CHB_OcultarNoAnalizadas.CheckedChanged += new System.EventHandler(this.CHB_OcultarNoAnalizadas_CheckedChanged);
+            // 
             // Form2
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1298, 610);
+            this.Controls.Add(this.CHB_OcultarNoAnalizadas);
+            this.Controls.Add(this.BT_DuplicarEstructura);
             this.Controls.Add(this.L_Advertencia);
             this.Controls.Add(this.CHB_EvaluarConEQD2);
             this.Controls.Add(this.L_NombrePaciente);
@@ -448,5 +475,7 @@
         private System.Windows.Forms.DataGridViewTextBoxColumn dePlantilla;
         private System.Windows.Forms.DataGridViewComboBoxColumn delPlan;
         private System.Windows.Forms.Label L_Advertencia;
+        private System.Windows.Forms.Button BT_DuplicarEstructura;
+        private System.Windows.Forms.CheckBox CHB_OcultarNoAnalizadas;
     }
 }

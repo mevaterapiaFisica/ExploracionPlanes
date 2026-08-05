@@ -1,0 +1,32 @@
+<local:DialogoWpf x:Class="ExploracionPlanes.SeleccionarPTV"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ExploracionPlanes"
+        Title="Selección PTV" Height="330" Width="240"
+        WindowStyle="ToolWindow" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style x:Key="BotonPrimario" TargetType="Button">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="18,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="14" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Seleccionar el PTV" FontWeight="SemiBold" />
+        <ListBox x:Name="LB_PlanesComparar" Grid.Row="2" />
+        <Button x:Name="BT_Selecccionar" Grid.Row="4" Content="Seleccionar" Style="{StaticResource BotonPrimario}"
+                HorizontalAlignment="Center" Click="BT_Selecccionar_Click" />
+    </Grid>
+</local:DialogoWpf>

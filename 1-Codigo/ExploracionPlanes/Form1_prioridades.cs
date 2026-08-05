@@ -476,7 +476,7 @@ namespace ExploracionPlanes
         {
             ImportarNombresEstructuras importarNombresEstructuras = new ImportarNombresEstructuras();
             importarNombresEstructuras.ShowDialog();
-            if (importarNombresEstructuras.DialogResult==DialogResult.OK && importarNombresEstructuras.nombresEstructurasSeleccionadas != null && importarNombresEstructuras.nombresEstructurasSeleccionadas.Count > 0)
+            if (importarNombresEstructuras.DialogResult==true && importarNombresEstructuras.nombresEstructurasSeleccionadas != null && importarNombresEstructuras.nombresEstructurasSeleccionadas.Count > 0)
             {
                 foreach (string nombre in importarNombresEstructuras.nombresEstructurasSeleccionadas)
                 {
@@ -492,7 +492,7 @@ namespace ExploracionPlanes
         private void BT_CondicionadaAOtraRestricción_Click(object sender, EventArgs e)
         {
             Form_ListaRestricciones form_ListaRestricciones = new Form_ListaRestricciones(listaRestricciones);
-            if (form_ListaRestricciones.ShowDialog() == DialogResult.OK)
+            if (form_ListaRestricciones.ShowDialog() == true)
             {
                 restriccionCondicionada = true;
                 restriccionActualConCondicion = restriccionActual();
@@ -523,8 +523,8 @@ namespace ExploracionPlanes
         private void BT_AplicarPrioridad_Click(object sender, EventArgs e)
         {
             FormTB formTB = new FormTB("", true,false,true);
-            formTB.Text = "Definición de prioridades";
-            formTB.Controls.OfType<Label>().FirstOrDefault().Text = "Defina las prioridades";
+            formTB.Title = "Definición de prioridades";
+            formTB.L_Texto.Text = "Defina las prioridades";
             formTB.ShowDialog();
             List<IRestriccion> restriccionesSeleccionadas = LB_listaRestricciones.SelectedItems.Cast<IRestriccion>().ToList();
             foreach (IRestriccion restriccion in restriccionesSeleccionadas)
@@ -541,8 +541,8 @@ namespace ExploracionPlanes
         private void BT_EvaluarEnPlanMod_Click(object sender, EventArgs e)
         {
             FormTB formTB = new FormTB("mod",false,false,true);
-            formTB.Text = "Plan modificado";
-            formTB.Controls.OfType<Label>().FirstOrDefault().Text = "Sufijo del plan modificado\n(Dejar vacío para eliminar)";
+            formTB.Title = "Plan modificado";
+            formTB.L_Texto.Text = "Sufijo del plan modificado\n(Dejar vacío para eliminar)";
             formTB.ShowDialog();
             List<IRestriccion> restriccionesSeleccionadas = LB_listaRestricciones.SelectedItems.Cast<IRestriccion>().ToList();
             foreach (IRestriccion restriccion in restriccionesSeleccionadas)
@@ -558,8 +558,8 @@ namespace ExploracionPlanes
         private void BT_AgregarNotaLote_Click(object sender, EventArgs e)
         {
             FormTB formTB = new FormTB("",false,false,true);
-            formTB.Text = "Agregar nota";
-            formTB.Controls.OfType<Label>().FirstOrDefault().Text = "Nota para las estructuras seleccionadas\n(Dejar vacío para eliminar)";
+            formTB.Title = "Agregar nota";
+            formTB.L_Texto.Text = "Nota para las estructuras seleccionadas\n(Dejar vacío para eliminar)";
             formTB.ShowDialog();
             List<IRestriccion> restriccionesSeleccionadas = LB_listaRestricciones.SelectedItems.Cast<IRestriccion>().ToList();
             foreach (IRestriccion restriccion in restriccionesSeleccionadas)

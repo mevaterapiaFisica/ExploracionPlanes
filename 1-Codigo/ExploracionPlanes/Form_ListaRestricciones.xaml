@@ -1,0 +1,40 @@
+<local:DialogoWpf x:Class="ExploracionPlanes.Form_ListaRestricciones"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ExploracionPlanes"
+        Title="Elegir restricción" Height="360" Width="330"
+        WindowStyle="ToolWindow" ResizeMode="NoResize" ShowInTaskbar="False"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style x:Key="BotonPrimario" TargetType="Button">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="18,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="BotonSecundario" TargetType="Button" BasedOn="{StaticResource BotonPrimario}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1B2A4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#1B2A4A" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="14" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" Text="Elegir una restricción de la lista" FontWeight="SemiBold" />
+        <ListBox x:Name="LB_ListaRestricciones" Grid.Row="2" DisplayMemberPath="etiqueta" />
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="BT_Cancelar" Content="Cancelar" Style="{StaticResource BotonSecundario}" IsCancel="True" Margin="0,0,10,0" />
+            <Button x:Name="BT_Aceptar" Content="Aceptar" Style="{StaticResource BotonPrimario}" IsDefault="True" Click="BT_Aceptar_Click" />
+        </StackPanel>
+    </Grid>
+</local:DialogoWpf>

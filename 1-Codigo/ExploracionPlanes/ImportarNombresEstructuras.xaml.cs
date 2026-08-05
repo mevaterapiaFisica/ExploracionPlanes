@@ -1,23 +1,21 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.Linq;
-using System.Text;
-using System.Windows.Forms;
+using System.Windows;
+using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 
 namespace ExploracionPlanes
 {
-    public partial class ImportarNombresEstructuras : Form
+    public partial class ImportarNombresEstructuras : DialogoWpf
     {
         Patient paciente;
         Course curso;
         PlanningItem plan;
         VMS.TPS.Common.Model.API.Application app;
         public List<string> nombresEstructurasSeleccionadas;
+
         public ImportarNombresEstructuras()
         {
             InitializeComponent();
@@ -41,14 +39,14 @@ namespace ExploracionPlanes
             {
                 paciente = app.OpenPatientById(ID);
                 L_NombrePaciente.Text = paciente.LastName + ", " + paciente.FirstName;
-                L_NombrePaciente.Visible = true;
-                this.Text += " - " + paciente.LastName + ", " + paciente.FirstName;
+                L_NombrePaciente.Visibility = Visibility.Visible;
+                Title += " - " + paciente.LastName + ", " + paciente.FirstName;
                 return true;
             }
             else
             {
                 MessageBox.Show("El paciente no existe");
-                L_NombrePaciente.Visible = false;
+                L_NombrePaciente.Visibility = Visibility.Collapsed;
                 return false;
             }
         }
@@ -121,10 +119,9 @@ namespace ExploracionPlanes
             {
                 return ((PlanSum)plan).StructureSet.Structures.ToList();
             }
-          
         }
 
-        private void BT_AbrirPaciente_Click(object sender, EventArgs e)
+        private void BT_AbrirPaciente_Click(object sender, RoutedEventArgs e)
         {
             if (abrirPaciente(TB_ID.Text))
             {
@@ -138,10 +135,9 @@ namespace ExploracionPlanes
                     LB_Cursos.SelectedIndex = 0;
                 }
             }
-
         }
 
-        private void LB_Cursos_SelectedIndexChanged(object sender, EventArgs e)
+        private void LB_Cursos_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             LB_Planes.Items.Clear();
             foreach (PlanningItem plan in listaPlanes(cursoSeleccionado()))
@@ -154,65 +150,52 @@ namespace ExploracionPlanes
             }
         }
 
-        private void BT_SeleccionarPlan_Click(object sender, EventArgs e)
+        private void BT_SeleccionarPlan_Click(object sender, RoutedEventArgs e)
         {
             List<Structure> lista = listaEstructuras(planSeleccionado());
             foreach (Structure estructura in lista)
             {
-                CHLB_Estructuras.Items.Add(estructura.Id);
+                var casilla = new CheckBox { Content = estructura.Id, Margin = new Thickness(2) };
+                casilla.Checked += CasillaEstructura_CheckedChanged;
+                casilla.Unchecked += CasillaEstructura_CheckedChanged;
+                CHLB_Estructuras.Items.Add(casilla);
             }
         }
 
         public List<string> estructurasSeleccionadas()
         {
-            return CHLB_Estructuras.CheckedItems.OfType<string>().ToList();
+            return CHLB_Estructuras.Items.OfType<CheckBox>()
+                .Where(c => c.IsChecked == true)
+                .Select(c => c.Content.ToString())
+                .ToList();
         }
 
-        private void BT_Importar_Click(object sender, EventArgs e)
+        private void BT_Importar_Click(object sender, RoutedEventArgs e)
         {
             nombresEstructurasSeleccionadas = estructurasSeleccionadas();
-            DialogResult = DialogResult.OK;
-            this.Close();
-            //cerrarPaciente();
-            /*if (app != null)
-            {
-                app.Dispose();
-            }*/
-
+            DialogResult = true;
         }
 
-        private void BT_SeleccionarTodas_Click(object sender, EventArgs e)
+        private void BT_SeleccionarTodas_Click(object sender, RoutedEventArgs e)
         {
-            for(int i = 0; i < CHLB_Estructuras.Items.Count; i++)
-{
-                CHLB_Estructuras.SetItemChecked(i, true);
+            foreach (CheckBox casilla in CHLB_Estructuras.Items.OfType<CheckBox>())
+            {
+                casilla.IsChecked = true;
             }
         }
 
-
-        private void CHLB_Estructuras_SelectedIndexChanged(object sender, EventArgs e)
+        private void CasillaEstructura_CheckedChanged(object sender, RoutedEventArgs e)
         {
-            if (estructurasSeleccionadas().Count>0)
-            {
-                BT_Importar.Enabled = true;
-            }
-            else
-            {
-                BT_Importar.Enabled = false;
-            }
+            BT_Importar.IsEnabled = estructurasSeleccionadas().Count > 0;
         }
 
-        private void BT_Cancelar_Click(object sender, EventArgs e)
+        private void BT_Cancelar_Click(object sender, RoutedEventArgs e)
         {
-            DialogResult = DialogResult.Cancel;
             if (app != null)
             {
                 app.Dispose();
             }
-            this.Close();
-            
+            DialogResult = false;
         }
     }
-
-
 }

@@ -1,0 +1,69 @@
+<local:DialogoWpf x:Class="ExploracionPlanes.ImportarNombresEstructuras"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ExploracionPlanes"
+        Title="Importar nombres de estructuras" Height="440" Width="540"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style x:Key="BotonPrimario" TargetType="Button">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="BotonSecundario" TargetType="Button" BasedOn="{StaticResource BotonPrimario}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1B2A4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#1B2A4A" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="6" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="16" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Columna izquierda: paciente / curso / plan -->
+        <StackPanel Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">
+            <TextBlock Text="ID:" VerticalAlignment="Center" Width="30" />
+            <TextBox x:Name="TB_ID" Width="90" Padding="3" Margin="0,0,8,0" />
+            <Button x:Name="BT_AbrirPaciente" Content="Abrir paciente" Style="{StaticResource BotonSecundario}" Click="BT_AbrirPaciente_Click" Margin="0,0,16,0" />
+            <TextBlock x:Name="L_NombrePaciente" VerticalAlignment="Center" Visibility="Collapsed" FontWeight="SemiBold" />
+        </StackPanel>
+
+        <TextBlock Grid.Row="2" Grid.Column="0" Text="Cursos" FontWeight="SemiBold" />
+        <ListBox x:Name="LB_Cursos" Grid.Row="4" Grid.Column="0" SelectionChanged="LB_Cursos_SelectionChanged" />
+
+        <TextBlock Grid.Row="2" Grid.Column="2" Text="Estructuras" FontWeight="SemiBold" />
+        <ListBox x:Name="CHLB_Estructuras" Grid.Row="4" Grid.Column="2" />
+
+        <StackPanel Grid.Row="6" Grid.Column="0" Orientation="Vertical">
+            <TextBlock Text="Planes" FontWeight="SemiBold" Margin="0,0,0,4" />
+            <ListBox x:Name="LB_Planes" Height="90" />
+        </StackPanel>
+        <Button x:Name="BT_SeleccionarTodas" Grid.Row="6" Grid.Column="2" Content="Seleccionar todas" Style="{StaticResource BotonSecundario}"
+                VerticalAlignment="Top" HorizontalAlignment="Left" Click="BT_SeleccionarTodas_Click" />
+
+        <Button x:Name="BT_SeleccionarPlan" Grid.Row="8" Grid.Column="0" Content="Seleccionar plan" Style="{StaticResource BotonSecundario}"
+                HorizontalAlignment="Left" Click="BT_SeleccionarPlan_Click" />
+        <StackPanel Grid.Row="8" Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="BT_Cancelar" Content="Cancelar" Style="{StaticResource BotonSecundario}" Margin="0,0,10,0" Click="BT_Cancelar_Click" />
+            <Button x:Name="BT_Importar" Content="Importar" Style="{StaticResource BotonPrimario}" IsEnabled="False" Click="BT_Importar_Click" />
+        </StackPanel>
+    </Grid>
+</local:DialogoWpf>

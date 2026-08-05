@@ -162,9 +162,7 @@
   <PropertyGroup />
   <PropertyGroup />
   <PropertyGroup />
-  <PropertyGroup>
-    <NoWin32Manifest>true</NoWin32Manifest>
-  </PropertyGroup>
+  <PropertyGroup />
   <ItemGroup>
     <Reference Include="MigraDoc.DocumentObjectModel, Version=1.32.4334.0, Culture=neutral, PublicKeyToken=f94615aa0424f9eb, processorArchitecture=MSIL">
       <HintPath>..\packages\PDFsharp-MigraDoc-GDI.1.32.4334.0\lib\net20\MigraDoc.DocumentObjectModel.dll</HintPath>
@@ -195,6 +193,10 @@
     <Reference Include="System.Net.Http" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="System.Xaml" />
+    <Reference Include="WindowsBase" />
     <Reference Include="VMS.TPS.Common.Model.API">
       <HintPath>..\..\..\..\1-En desarrollo\Proyecto Chequeos\PruebaTreeListView\bin\x64\Debug\VMS.TPS.Common.Model.API.dll</HintPath>
     </Reference>
@@ -210,6 +212,7 @@
     <Compile Include="Chequeos.cs" />
     <Compile Include="ColorearAnalisis.cs" />
     <Compile Include="Condicion.cs" />
+    <Compile Include="DialogoWpf.cs" />
     <Compile Include="Configuracion.cs" />
     <Compile Include="DesdeCSV.cs" />
     <Compile Include="Diccionario.cs" />
@@ -236,50 +239,57 @@
     <Compile Include="Form2_DosPlanes.Designer.cs">
       <DependentUpon>Form2_DosPlanes.cs</DependentUpon>
     </Compile>
-    <Compile Include="FormConfiguracion.cs">
-      <SubType>Form</SubType>
+    <Page Include="FormConfiguracion.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="FormConfiguracion.xaml.cs">
+      <DependentUpon>FormConfiguracion.xaml</DependentUpon>
     </Compile>
-    <Compile Include="FormConfiguracion.Designer.cs">
-      <DependentUpon>FormConfiguracion.cs</DependentUpon>
+    <Page Include="FormTB.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="FormTB.xaml.cs">
+      <DependentUpon>FormTB.xaml</DependentUpon>
     </Compile>
-    <Compile Include="FormTB.cs">
-      <SubType>Form</SubType>
+    <Page Include="Form_ListaRestricciones.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Form_ListaRestricciones.xaml.cs">
+      <DependentUpon>Form_ListaRestricciones.xaml</DependentUpon>
     </Compile>
-    <Compile Include="FormTB.Designer.cs">
-      <DependentUpon>FormTB.cs</DependentUpon>
-    </Compile>
-    <Compile Include="Form_ListaRestricciones.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form_ListaRestricciones.Designer.cs">
-      <DependentUpon>Form_ListaRestricciones.cs</DependentUpon>
-    </Compile>
-    <Compile Include="ImportarNombresEstructuras.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="ImportarNombresEstructuras.Designer.cs">
-      <DependentUpon>ImportarNombresEstructuras.cs</DependentUpon>
+    <Page Include="ImportarNombresEstructuras.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="ImportarNombresEstructuras.xaml.cs">
+      <DependentUpon>ImportarNombresEstructuras.xaml</DependentUpon>
     </Compile>
     <Compile Include="Metodos.cs" />
     <Compile Include="MemoriaPlan.cs" />
     <Compile Include="Mineria.cs" />
-    <Compile Include="SeleccionarPTV.cs">
-      <SubType>Form</SubType>
+    <Page Include="SeleccionarPTV.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="SeleccionarPTV.xaml.cs">
+      <DependentUpon>SeleccionarPTV.xaml</DependentUpon>
     </Compile>
-    <Compile Include="SeleccionarPTV.Designer.cs">
-      <DependentUpon>SeleccionarPTV.cs</DependentUpon>
+    <Page Include="PlanesParaComparar.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="PlanesParaComparar.xaml.cs">
+      <DependentUpon>PlanesParaComparar.xaml</DependentUpon>
     </Compile>
-    <Compile Include="PlanesParaComparar.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="PlanesParaComparar.Designer.cs">
-      <DependentUpon>PlanesParaComparar.cs</DependentUpon>
-    </Compile>
-    <Compile Include="PlanesSumaContext.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="PlanesSumaContext.Designer.cs">
-      <DependentUpon>PlanesSumaContext.cs</DependentUpon>
+    <Page Include="PlanesSumaContext.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="PlanesSumaContext.xaml.cs">
+      <DependentUpon>PlanesSumaContext.xaml</DependentUpon>
     </Compile>
     <Compile Include="PlantillaBlanco.cs">
       <SubType>Form</SubType>
@@ -327,27 +337,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Form2_DosPlanes.resx">
       <DependentUpon>Form2_DosPlanes.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="FormConfiguracion.resx">
-      <DependentUpon>FormConfiguracion.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="FormTB.resx">
-      <DependentUpon>FormTB.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form_ListaRestricciones.resx">
-      <DependentUpon>Form_ListaRestricciones.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="ImportarNombresEstructuras.resx">
-      <DependentUpon>ImportarNombresEstructuras.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="SeleccionarPTV.resx">
-      <DependentUpon>SeleccionarPTV.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PlanesParaComparar.resx">
-      <DependentUpon>PlanesParaComparar.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PlanesSumaContext.resx">
-      <DependentUpon>PlanesSumaContext.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="PlantillaBlanco.resx">
       <DependentUpon>PlantillaBlanco.cs</DependentUpon>

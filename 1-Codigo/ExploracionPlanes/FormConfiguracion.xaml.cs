@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Windows.Forms;
+using System;
+using System.Windows;
 
 namespace ExploracionPlanes
 {
-    public partial class FormConfiguracion : Form
+    public partial class FormConfiguracion : DialogoWpf
     {
         public FormConfiguracion()
         {
@@ -18,7 +12,7 @@ namespace ExploracionPlanes
             TB_VolumenDM.Text = Properties.Settings.Default.VolDosisMax.ToString();
         }
 
-        private void BT_Guardar_Click(object sender, EventArgs e)
+        private void BT_Guardar_Click(object sender, RoutedEventArgs e)
         {
             Properties.Settings.Default.Path = TB_Ruta.Text;
             Properties.Settings.Default.VolDosisMax = Convert.ToDouble(TB_VolumenDM.Text);
@@ -26,17 +20,16 @@ namespace ExploracionPlanes
             Close();
         }
 
-        private void BT_Cancelar_Click(object sender, EventArgs e)
+        private void BT_Cancelar_Click(object sender, RoutedEventArgs e)
         {
             Close();
         }
 
-        private void BT_SeleccionarRuta_Click(object sender, EventArgs e)
+        private void BT_SeleccionarRuta_Click(object sender, RoutedEventArgs e)
         {
-            FolderBrowserDialog fbd = new FolderBrowserDialog();
+            var fbd = new System.Windows.Forms.FolderBrowserDialog();
             fbd.SelectedPath = Properties.Settings.Default.Path;
-            DialogResult result = fbd.ShowDialog();
-            if (result == DialogResult.OK)
+            if (fbd.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
                 TB_Ruta.Text = fbd.SelectedPath;
             }

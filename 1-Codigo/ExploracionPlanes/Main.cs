@@ -300,10 +300,10 @@ namespace ExploracionPlanes
         private void BT_Duplicar_Click(object sender, EventArgs e)
         {
             FormTB formTb = new FormTB();
-            formTb.Text = "Nombre plantilla";
-            formTb.Controls.OfType<Label>().FirstOrDefault().Text = "Ingrese el nombre de la nueva plantilla";
+            formTb.Title = "Nombre plantilla";
+            formTb.L_Texto.Text = "Ingrese el nombre de la nueva plantilla";
             formTb.ShowDialog();
-            if (formTb.DialogResult == DialogResult.OK)
+            if (formTb.DialogResult == true)
             {
                 plantillaSeleccionada().duplicar(formTb.salida);
                 leerPlantillas();
@@ -347,10 +347,10 @@ namespace ExploracionPlanes
             if (editaPlantilla == false)
             {
                 FormTB formTb = new FormTB("", false, true);
-                formTb.Text = "Edición de plantillas";
-                formTb.Controls.OfType<Label>().FirstOrDefault().Text = "Ingrese contraseña para edición de plantillas";
+                formTb.Title = "Edición de plantillas";
+                formTb.L_Texto.Text = "Ingrese contraseña para edición de plantillas";
                 formTb.ShowDialog();
-                if (formTb.DialogResult == DialogResult.OK)
+                if (formTb.DialogResult == true)
                 {
                     editaPlantilla = true;
                     L_Editando.Visible = true;
@@ -396,14 +396,14 @@ namespace ExploracionPlanes
         private void BT_ExtraerDePlantilla_Click(object sender, EventArgs e)
         {
             FormTB formTb = new FormTB(((Plantilla)(LB_Plantillas.SelectedItem)).etiqueta);
-            formTb.Text = "Extraer de plantilla";
-            formTb.Controls.OfType<Label>().FirstOrDefault().Text = "Ingrese el nombre de la plantilla";
-            formTb.Controls.OfType<CheckBox>().FirstOrDefault().Visible = true;
-            formTb.Controls.OfType<CheckBox>().FirstOrDefault().Text = "Buscar solo planes aprobados";
+            formTb.Title = "Extraer de plantilla";
+            formTb.L_Texto.Text = "Ingrese el nombre de la plantilla";
+            formTb.CHB_Extra.Visibility = System.Windows.Visibility.Visible;
+            formTb.CHB_Extra.Content = "Buscar solo planes aprobados";
             formTb.ShowDialog();
-            if (formTb.DialogResult == DialogResult.OK)
+            if (formTb.DialogResult == true)
             {
-                Mineria.escribirArchivo(Mineria.listaPlantillas(formTb.salida, formTb.Controls.OfType<CheckBox>().FirstOrDefault().Checked));
+                Mineria.escribirArchivo(Mineria.listaPlantillas(formTb.salida, formTb.CHB_Extra.IsChecked == true));
             }
         }
 

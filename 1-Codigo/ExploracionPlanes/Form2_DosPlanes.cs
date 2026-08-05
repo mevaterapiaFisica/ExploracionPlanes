@@ -708,11 +708,11 @@ namespace ExploracionPlanes
                 e.RowIndex >= 0)
             {
                 FormTB formTb = new FormTB((senderGrid.Rows[e.RowIndex].Cells[e.ColumnIndex]).Value.ToString(), true);
-                formTb.Text = "Volumen dosis maxima";
-                formTb.Controls.OfType<Label>().FirstOrDefault().Text = "Definir el tamaño del elemento de volumen para el \ncálculo de la dosis máxima [cm3]";
+                formTb.Title = "Volumen dosis maxima";
+                formTb.L_Texto.Text = "Definir el tamaño del elemento de volumen para el \ncálculo de la dosis máxima [cm3]";
                 formTb.ShowDialog();
 
-                if (formTb.DialogResult == DialogResult.OK)
+                if (formTb.DialogResult == true)
                 {
                     ((RestriccionDosisMax)(plantilla.listaRestricciones[e.RowIndex])).analizarPlanEstructura(planSeleccionado(), estructuraCorrespondiente(plantilla.listaRestricciones[e.RowIndex].estructura.nombre, plan), Metodos.validarYConvertirADouble(formTb.salida));
                     DGV_Analisis.Rows[e.RowIndex].Cells[2].Value = plantilla.listaRestricciones[e.RowIndex].valorMedido + plantilla.listaRestricciones[e.RowIndex].unidadValor;

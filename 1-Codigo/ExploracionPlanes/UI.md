@@ -274,10 +274,22 @@ otra razón.
 
 **Fase 1: cerrada.** Commit `aa2eb2d`, pusheado a `origin/master`.
 
-**Fase 2 — Decisión de binding** antes de tocar los formularios con `DataGridView` por índice
-(`PlantillaBlanco`, `Form2`, `Form2_DosPlanes`, `Form1_ext`, `Form1_prioridades`): MVVM liviano
-(colección bindeada a `DataGrid`) vs replicar acceso directo a celdas. Sin esto la migración de
-esos 5 es reescritura de lógica, no solo de XAML.
+**Fase 2 — Decisión de binding: RESUELTA.** WPF `DataGrid` no tiene equivalente a
+`Cells[j].Value = x` libre de WinForms — siempre necesita un `ItemsSource`. La decisión no es
+"MVVM sí o no" sino cuánta ceremonia meter. Elegido: una clase fila plana por grilla (ej.
+`FilaAnalisis`), con `INotifyPropertyChanged` **solo en esa clase** — lo justo para que
+`fila.Valor = x` desde código se refleje sola en la UI, igual que hoy `Cells[j].Value = x`. Sin
+ViewModels, sin comandos, sin capa nueva — el code-behind de cada formulario se queda tan
+imperativo como está ahora (mismo estilo que ya usan `Form_ListaRestricciones`, `SeleccionarPTV`,
+etc. de Fase 1, que ya usan `ItemsSource` sin binding bidireccional). El coloreado pass/fail
+(`ColorearAnalisis.cs`) pasa de pintar una `DataGridViewCell` directo a exponer un `Brush` por fila
+que la columna del `DataGrid` lee vía `CellStyle`/binding.
+
+Migrar estos 5 formularios implica reescribir la lógica de lectura/escritura de la tabla, no solo
+el XAML — es la parte de mayor riesgo de toda la migración (§4/§5). Antes de tocar código en
+`Form2`/`Form2_DosPlanes` (los más grandes y con más lógica pegada a controles), empezar por
+`PlantillaBlanco` como piloto del patrón `FilaAnalisis` — es el más chico de los 5 y ya comparte el
+mismo esquema de columnas que `Form2`.
 
 **Fase 3 — Los formularios con `DataGridView` pesado** (`PlantillaBlanco`, `Form2`,
 `Form2_DosPlanes`, `Form1_ext`, `Form1_prioridades`), uno por uno, mismo circuito de screenshots.

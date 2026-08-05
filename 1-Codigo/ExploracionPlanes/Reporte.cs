@@ -162,5 +162,76 @@ namespace ExploracionPlanes
         {
             return new Color(color.A, color.R, color.G, color.B);
         }
+
+        // Camino para diálogos ya migrados a WPF: no hay DataGridView del que leer, así que el
+        // caller arma la tabla directo (misma forma final que espera convertirDGVaTabla).
+        public static Document crearReporte(string apellidoPaciente, string nombrePaciente, string IDPaciente, string equipo, string nombrePlantilla, string notaPlantilla, string realizadoPor, string plan, string presc, TablaReporte tabla)
+        {
+            var doc = new Document();
+            Estilos.definirEstilos(doc);
+            doc.Add(crearSeccion(apellidoPaciente, nombrePaciente, IDPaciente, equipo, nombrePlantilla, notaPlantilla, realizadoPor, plan, presc, tabla));
+            return doc;
+        }
+
+        private static Section crearSeccion(string apellidoPaciente, string nombrePaciente, string IDPaciente, string equipo, string nombrePlantilla, string notaPlantilla, string realizadoPor, string plan, string presc, TablaReporte tabla)
+        {
+            Section seccion = new Section();
+            Estilos.formatearSeccion(seccion);
+            cargarEncabezado(seccion, apellidoPaciente, nombrePaciente, equipo, IDPaciente, nombrePlantilla, realizadoPor, plan, presc);
+            seccion.Add(convertirTablaReporte(tabla));
+            seccion.AddParagraph("", "Texto");
+            if (!string.IsNullOrEmpty(notaPlantilla))
+            {
+                string[] notaPlantillaArray = Regex.Split(notaPlantilla, "\r\n");
+                foreach (string lineaNota in notaPlantillaArray)
+                {
+                    seccion.AddParagraph(lineaNota, "Texto Parrafo");
+                }
+            }
+            return seccion;
+        }
+
+        private static MigraDoc.DocumentObjectModel.Tables.Table convertirTablaReporte(TablaReporte tabla)
+        {
+            var tablaDoc = new MigraDoc.DocumentObjectModel.Tables.Table();
+            foreach (var columna in tabla.Columnas)
+            {
+                tablaDoc.AddColumn(columna.Ancho);
+            }
+            tablaDoc.AddRow();
+            foreach (var fila in tabla.Filas)
+            {
+                var filaDoc = tablaDoc.AddRow();
+                for (int i = 0; i < tabla.Columnas.Count; i++)
+                {
+                    filaDoc.Cells[i].AddParagraph(fila.Valores[i] ?? "");
+                    filaDoc.Cells[i].Shading.Color = colorDGVaTable(fila.Fondos[i]);
+                }
+            }
+            for (int i = 0; i < tabla.Columnas.Count; i++)
+            {
+                tablaDoc.Rows[0].Cells[i].AddParagraph(tabla.Columnas[i].Encabezado);
+            }
+            Estilos.formatearTabla(tablaDoc);
+            return tablaDoc;
+        }
+    }
+
+    public class ColumnaReporte
+    {
+        public string Encabezado;
+        public int Ancho;
+    }
+
+    public class FilaReporte
+    {
+        public System.Collections.Generic.List<string> Valores = new System.Collections.Generic.List<string>();
+        public System.Collections.Generic.List<System.Drawing.Color> Fondos = new System.Collections.Generic.List<System.Drawing.Color>();
+    }
+
+    public class TablaReporte
+    {
+        public System.Collections.Generic.List<ColumnaReporte> Columnas = new System.Collections.Generic.List<ColumnaReporte>();
+        public System.Collections.Generic.List<FilaReporte> Filas = new System.Collections.Generic.List<FilaReporte>();
     }
 }

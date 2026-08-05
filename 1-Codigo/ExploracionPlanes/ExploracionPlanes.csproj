@@ -213,6 +213,7 @@
     <Compile Include="ColorearAnalisis.cs" />
     <Compile Include="Condicion.cs" />
     <Compile Include="DialogoWpf.cs" />
+    <Compile Include="FilaAnalisis.cs" />
     <Compile Include="Configuracion.cs" />
     <Compile Include="DesdeCSV.cs" />
     <Compile Include="Diccionario.cs" />
@@ -291,11 +292,12 @@
     <Compile Include="PlanesSumaContext.xaml.cs">
       <DependentUpon>PlanesSumaContext.xaml</DependentUpon>
     </Compile>
-    <Compile Include="PlantillaBlanco.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="PlantillaBlanco.Designer.cs">
-      <DependentUpon>PlantillaBlanco.cs</DependentUpon>
+    <Page Include="PlantillaBlanco.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="PlantillaBlanco.xaml.cs">
+      <DependentUpon>PlantillaBlanco.xaml</DependentUpon>
     </Compile>
     <Compile Include="Form3.cs">
       <SubType>Form</SubType>
@@ -337,9 +339,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Form2_DosPlanes.resx">
       <DependentUpon>Form2_DosPlanes.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="PlantillaBlanco.resx">
-      <DependentUpon>PlantillaBlanco.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Form3.resx">
       <DependentUpon>Form3.cs</DependentUpon>

@@ -294,6 +294,35 @@ mismo esquema de columnas que `Form2`.
 **Fase 3 — Los formularios con `DataGridView` pesado** (`PlantillaBlanco`, `Form2`,
 `Form2_DosPlanes`, `Form1_ext`, `Form1_prioridades`), uno por uno, mismo circuito de screenshots.
 
+### PlantillaBlanco: piloto del patrón FilaAnalisis — COMPLETADO
+
+Migrado a `Window` WPF con `DataGrid` bindeado a `ObservableCollection<FilaAnalisis>`
+(`FilaAnalisis.cs`, clase compartida con `INotifyPropertyChanged` para las próximas migraciones de
+esta fase). `llenarDGVAnalisis()` se portó 1:1 a `llenarAnalisis()` — misma lógica de bracket
+notation, menorOmayor, valorEsperadoString con tolerancia, nota con asterisco por plan modificado.
+
+Cambios de alcance necesarios (no opcionales, los pidió la migración en sí):
+- **`Reporte.cs`**: se agregó un overload de `crearReporte(...)` que toma una `TablaReporte` (clases
+  nuevas `TablaReporte`/`FilaReporte`/`ColumnaReporte`, sin `System.Windows.Forms.DataGridView`) en
+  vez de leer una `DataGridView` en vivo. El overload viejo (`DataGridView`) queda intacto y sigue
+  sirviendo a `Form2`/`Form2_DosPlanes`/`Form1_ext`/`Form1_prioridades` hasta que se migren — cero
+  riesgo para esos 4 formularios todavía no tocados.
+- Columna "Blanco" (WinForms, `Visible=false`, nunca se le asignaba valor) no se recreó — estaba
+  muerta en el original.
+- El ancho de columnas en el PDF exportado ya no puede calcularse leyendo el ancho real en pantalla
+  (`DataGridViewColumn.Width` después de `AutoSizeColumnsMode.AllCells`, que es lo que hacía el
+  código viejo) porque WPF no expone eso igual — se fijaron anchos razonables a mano. Es un detalle
+  cosmético del PDF, no funcional.
+
+Ronda de ajuste visual con el usuario: ventana angosta (600×480) con columnas apretadas y sin líneas
+de grilla — texto de estructuras largas se cortaba. Fix: ventana 780×620, anchos de columna más
+generosos, `GridLinesVisibility="All"`, header con fondo de marca, filas alternadas. Confirmado por
+el usuario: **resuelto**.
+
+**Pendiente de Fase 3**: `Form2`, `Form2_DosPlanes`, `Form1_ext`, `Form1_prioridades` — estos sí
+necesitan que `FilaAnalisis` incorpore el `Brush` de pass/fail (no usado por `PlantillaBlanco`, que
+no analiza un plan real) y reescribir la lógica de actualización en vivo de celdas.
+
 Runtime: WPF se hace sobre .NET Framework 4.5.1 primero (no toca ESAPI por `HintPath` ni
 PDFsharp/MigraDoc-GDI). Migrar a .NET moderno (6/8) queda como paso separado y posterior, evaluado
 aparte cuando corresponda.

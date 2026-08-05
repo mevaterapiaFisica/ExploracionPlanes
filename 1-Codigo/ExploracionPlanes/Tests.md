@@ -245,6 +245,31 @@ Se probó lanzar el `.exe` standalone acá y capturarlo con PowerShell (`GetWind
 
 ---
 
+## 2026-08-05 — Dos bugs en comparación de dos planes (`Form2_DosPlanes.cs`)
+
+### Bug 1: sin opción de evaluar EQD2
+
+`Form2.cs` tiene checkbox `CHB_EvaluarConEQD2` + columna α/β en `DGV_Estructuras` + rama EQD2 en el análisis; `Form2_DosPlanes.cs` no tenía nada de eso, no había forma de comparar dos planes en EQD2.
+
+Se trasladó la lógica: checkbox `CHB_EvaluarConEQD2` nuevo, `CHB_EvaluarConEQD2_CheckedChanged`/`cargarAlfaBetaDGVEstructuras` calcados de Form2 (valida que ni `plan` ni `plan2` sean `PlanSum` ni tengan dosis/fracción de 200cGy), y en `analizarRestriccion` cada plan usa `restriccion.analizarPlanEstructura(..., alfaBeta, numeroFracciones)` con **su propio** número de fracciones (`plan` y `plan2` pueden estar fraccionados distinto) pero el **mismo** α/β (es una propiedad de la anatomía, no del plan — se busca una sola vez contra el structure ID de `plan`, antes de que la variable `estructura` se reasigne al structure de `plan2`). Se agregó también el acumulado de nota "Se analizaron evaluando EQD2: ..." igual que Form2.
+
+**Diferencia de layout con Form2**: Form2 ensancha `DGV_Estructuras` (+60px) al mostrar la columna α/β porque tiene margen antes del siguiente control. En `Form2_DosPlanes`, `DGV_Prescripciones` arranca a solo 282px del borde de `DGV_Estructuras` — ensanchar igual que Form2 la superpondría. Se dejó `DGV_Estructuras` con su ancho fijo y que `AutoSizeColumnsMode` acomode las 3 columnas ahí adentro (más apretado, sin superposición).
+
+### Bug 2: en standalone, "Comparar dos planes" mostraba la lista de planes vacía antes de entrar a Eclipse
+
+Causa: `Main.BT_CompararPlanes_Click` siempre abría el diálogo `PlanesParaComparar` usando el campo `planesParaComparar`, que **solo se llena con el contexto que pasa `Script.cs` desde Eclipse** (`_plansContext`/`_planSumsContext`). En standalone ese campo nunca tiene datos → diálogo con lista vacía siempre. Además, el bloque de "plan Mod" que sigue usa `planContext.Id`, que es `null` en standalone → hubiera tirado `NullReferenceException` si alguna plantilla tenía restricciones en plan Mod.
+
+Fix, sin replicar la lógica de contexto de Eclipse en Main (correctamente identificado como "rebuscado" por lo compleja que sería):
+
+- `Main.BT_CompararPlanes_Click`: el diálogo `PlanesParaComparar` y el chequeo de plan Mod ahora corren **solo si `hayContext`** (plugin). En standalone, abre `Form2_DosPlanes` directo con paciente/plan en `null`, igual que ya se hace con `Form2` para un solo plan — el formulario elige paciente/curso/planes él mismo.
+- `Form2_DosPlanes`: `LB_Planes` pasa a multiselección (`SelectionMode = MultiExtended`). `planSeleccionado()` ya no adivina el segundo plan buscando "cam" en el nombre (ese hack quedaba documentado como corrección parcial el 2026-08-04); ahora toma directamente los dos ítems seleccionados en `LB_Planes`. `BT_SeleccionarPlan` y `BT_Analizar` se habilitan solo cuando hay **exactamente 2** planes seleccionados (antes era `== 1`). Label actualizado a "3. Seleccionar 2 planes".
+
+### Cómo se testeó
+
+Ambos bugs dependen de ESAPI real (`PlanSetup`/`Application.CreateApplication`) para reproducirse de punta a punta, así que no se armó un test aislado nuevo — se verificó por lectura de código (los mismos puntos de entrada/guard clauses que ya se testearon en la sesión del 2026-08-04 para este archivo) y compilación completa con MSBuild, sin errores. Pendiente de confirmación del usuario en Eclipse real (plugin) y standalone.
+
+---
+
 ## Convención para tests futuros
 
 A partir de este cambio, todo cambio sobre código funcional debe incluir un test que compare comportamiento antes/después, documentado como una entrada nueva en este archivo (fecha, qué se cambió, cómo se testeó, números usados, resultado). Si el código depende de ESAPI y no se puede instanciar fuera de Eclipse, aislar la lógica pura afectada (como se hizo en `Tests/TestEQD2/`) en vez de omitir el test.

@@ -126,15 +126,11 @@ namespace ExploracionPlanes
             {
                 return plan;
             }
-            else if (LB_Planes.SelectedItems.Count == 1)
+            else if (LB_Planes.SelectedItems.Count == 2)
             {
                 plan = (PlanningItem)LB_Planes.SelectedItems[0];
-                plan2 = cursoSeleccionado().PlanSetups.FirstOrDefault(p => p.Id.ToLower().Contains("cam"));
-                if (plan2 == null)
-                {
-                    MessageBox.Show("No se encontró en el curso un plan cuyo nombre contenga \"cam\" para comparar.");
-                }
-                return (PlanningItem)LB_Planes.SelectedItems[0];
+                plan2 = (PlanningItem)LB_Planes.SelectedItems[1];
+                return plan;
             }
             else
             {
@@ -366,6 +362,8 @@ namespace ExploracionPlanes
                 seleccionarPTV.ShowDialog();
                 ptvCondicion = seleccionarPTV.ptv;
             }
+            string notaEQD2 = "Se analizaron evaluando EQD2: ";
+            List<string> estructurasConEQD2 = new List<string>();
             int j = 0;
             for (int i = 0; i < plantilla.listaRestricciones.Count; i++)
             {
@@ -376,7 +374,7 @@ namespace ExploracionPlanes
                 }
                 try
                 {
-                    analizarRestriccion(restriccion, j);
+                    analizarRestriccion(restriccion, j, estructurasConEQD2, ref notaEQD2);
                 }
                 catch (Exception ex)
                 {
@@ -388,6 +386,10 @@ namespace ExploracionPlanes
                 j++;
             }
             DGV_Analisis.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
+            if (CHB_EvaluarConEQD2.Checked)
+            {
+                plantilla.nota += "\r\n" + notaEQD2;
+            }
             if (plantilla.TieneRestriccionEnPlanMod())
             {
                 L_Advertencia.Visible = true;
@@ -418,7 +420,7 @@ namespace ExploracionPlanes
             }
         }
 
-        private void analizarRestriccion(IRestriccion restriccion, int j)
+        private void analizarRestriccion(IRestriccion restriccion, int j, List<string> estructurasConEQD2, ref string notaEQD2)
         {
             PlanningItem planRestriccion;
             if (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null)
@@ -462,7 +464,22 @@ namespace ExploracionPlanes
                         DGV_Analisis.Rows[j].Cells[6].Value += " *";
                     }
                     DGV_Analisis.Rows[j].Cells[3].Value = Math.Round(estructura.Volume, 2).ToString();
-                    restriccion.analizarPlanEstructura(planRestriccion, estructura);
+                    double alfaBeta = 3;
+                    if (CHB_EvaluarConEQD2.Checked)
+                    {
+                        alfaBeta = alfaBetaDeEstructura(estructura.Id);
+                        int numeroFraccionesPlan1 = (int)((PlanSetup)plan).UniqueFractionation.NumberOfFractions;
+                        restriccion.analizarPlanEstructura(planRestriccion, estructura, alfaBeta, numeroFraccionesPlan1);
+                        if (!estructurasConEQD2.Contains(estructura.Id))
+                        {
+                            estructurasConEQD2.Add(estructura.Id);
+                            notaEQD2 += "\r\n" + estructura.Id + " α/β=" + alfaBeta.ToString();
+                        }
+                    }
+                    else
+                    {
+                        restriccion.analizarPlanEstructura(planRestriccion, estructura);
+                    }
                     if (restriccion.chequearSamplingCoverage(planRestriccion, estructura))
                     {
                         MessageBox.Show("La estructura " + estructura.Id + " no tiene el suficiente Sampling Coverage.\nNo se puede realizar el análisis");
@@ -502,7 +519,15 @@ namespace ExploracionPlanes
                     }
                     else
                     {
-                        restriccion.analizarPlanEstructura(plan2Restriccion, estructura);
+                        if (CHB_EvaluarConEQD2.Checked)
+                        {
+                            int numeroFraccionesPlan2 = (int)((PlanSetup)plan2).UniqueFractionation.NumberOfFractions;
+                            restriccion.analizarPlanEstructura(plan2Restriccion, estructura, alfaBeta, numeroFraccionesPlan2);
+                        }
+                        else
+                        {
+                            restriccion.analizarPlanEstructura(plan2Restriccion, estructura);
+                        }
                         if (restriccion.chequearSamplingCoverage(plan2Restriccion, estructura))
                         {
                             MessageBox.Show("La estructura " + estructura.Id + " no tiene el suficiente Sampling Coverage.\nNo se puede realizar el análisis");
@@ -649,7 +674,7 @@ namespace ExploracionPlanes
 
         private void LB_Planes_SelectedIndexChanged(object sender, EventArgs e)
         {
-            Metodos.habilitarBoton(LB_Planes.SelectedItems.Count == 1, BT_SeleccionarPlan);
+            Metodos.habilitarBoton(LB_Planes.SelectedItems.Count == 2, BT_SeleccionarPlan);
         }
 
         private void DGV_Análisis_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
@@ -660,7 +685,7 @@ namespace ExploracionPlanes
 
         private void DGV_Estructuras_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
         {
-            Metodos.habilitarBoton(LB_Planes.SelectedItems.Count == 1 && DGV_Estructuras.RowCount > 0, BT_Analizar);
+            Metodos.habilitarBoton(LB_Planes.SelectedItems.Count == 2 && DGV_Estructuras.RowCount > 0, BT_Analizar);
         }
 
         private void prepararControlesContext()
@@ -782,6 +807,66 @@ namespace ExploracionPlanes
         private void DGV_Prescripciones_CellContentClick(object sender, DataGridViewCellEventArgs e)
         {
 
+        }
+
+        public void CHB_EvaluarConEQD2_CheckedChanged(object sender, EventArgs e)
+        {
+            if (CHB_EvaluarConEQD2.Checked)
+            {
+                if (plan is PlanSum || plan2 is PlanSum)
+                {
+                    MessageBox.Show("No funciona para planes suma");
+                    CHB_EvaluarConEQD2.Checked = false;
+                }
+                else if (((PlanSetup)plan).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200
+                    || ((PlanSetup)plan2).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200)
+                {
+                    MessageBox.Show("La dosis día es de 200cGy en alguno de los dos planes");
+                    CHB_EvaluarConEQD2.Checked = false;
+                }
+                else
+                {
+                    // A diferencia de Form2, acá no se ensancha DGV_Estructuras: DGV_Prescripciones
+                    // arranca a solo 282px del borde izquierdo de esta tabla, no hay lugar para el
+                    // +60px que usa Form2. Se deja que AutoSizeColumnsMode acomode las 3 columnas
+                    // en el ancho actual (puede quedar más apretado, no se superpone con el vecino).
+                    DataGridViewTextBoxColumn columna = new DataGridViewTextBoxColumn();
+                    columna.Width = 55;
+                    columna.HeaderText = "α/β";
+                    DGV_Estructuras.Columns.Add(columna);
+                    cargarAlfaBetaDGVEstructuras();
+                }
+            }
+            else
+            {
+                if (DGV_Estructuras.Columns.Count == 3)
+                {
+                    DGV_Estructuras.Columns.RemoveAt(2);
+                }
+            }
+        }
+
+        public void cargarAlfaBetaDGVEstructuras()
+        {
+            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
+            {
+                fila.Cells[2].Value = Estructura.AlfaBeta(fila.Cells[0].Value.ToString());
+            }
+        }
+
+        // El α/β en DGV_Estructuras está indexado por el structureID de "plan" (asociarEstructuras()
+        // solo asocia contra plan, ver estructuraCorrespondiente2). Es una propiedad de la anatomía, no
+        // del plan, así que el mismo valor se reusa para analizar plan y plan2.
+        private double alfaBetaDeEstructura(string structureIdPlan1)
+        {
+            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
+            {
+                if (fila.Cells[1].Value != null && fila.Cells[1].Value.ToString() == structureIdPlan1)
+                {
+                    return Convert.ToDouble(fila.Cells[2].Value);
+                }
+            }
+            return 3;
         }
     }
 }

@@ -205,43 +205,54 @@ namespace ExploracionPlanes
         {
             planMod = null;
             planParaCompararMod = null;
-            planesParaCompararForm = new PlanesParaComparar(planesParaComparar);
-            planesParaCompararForm.ShowDialog();
-
-            if (plantillaSeleccionada().TieneRestriccionEnPlanMod())
+            if (hayContext)
             {
-                string nombrePlanMod = planContext.Id + plantillaSeleccionada().ExtensionPlanMod();
-                string nombrePlanParaCompararMod = planesParaCompararForm.planParaComparar + plantillaSeleccionada().ExtensionPlanMod();
-                if (planesParaComparar.Any(p => p.Id == nombrePlanMod))
-                {
-                    planMod = planesParaComparar.Where(p => p.Id == nombrePlanMod).First();
-                    if (planMod is PlanSetup && ((PlanSetup)planMod).ApprovalStatus != VMS.TPS.Common.Model.Types.PlanSetupApprovalStatus.Rejected)
-                    {
-                        MessageBox.Show("El plan " + planMod.Id + " debe estar rechazado");
-                    }
-                    if (!PlanYModSonIguales((PlanSetup)planContext, (PlanSetup)planMod))
-                    {
-                        //this.Close();
-                        return;
-                    }
+                // planesParaComparar solo se llena con el contexto de Eclipse (Script.cs); en standalone
+                // siempre está vacía, así que este diálogo (y el chequeo de plan Mod, que depende de
+                // planContext) solo tiene sentido en modo plugin.
+                planesParaCompararForm = new PlanesParaComparar(planesParaComparar);
+                planesParaCompararForm.ShowDialog();
 
-                }
-                if (planesParaComparar.Any(p => p.Id == nombrePlanParaCompararMod))
+                if (plantillaSeleccionada().TieneRestriccionEnPlanMod())
                 {
-                    planParaCompararMod = planesParaComparar.Where(p => p.Id == nombrePlanParaCompararMod).First();
-                    if (planParaCompararMod is PlanSetup && ((PlanSetup)planParaCompararMod).ApprovalStatus != VMS.TPS.Common.Model.Types.PlanSetupApprovalStatus.Rejected)
+                    string nombrePlanMod = planContext.Id + plantillaSeleccionada().ExtensionPlanMod();
+                    string nombrePlanParaCompararMod = planesParaCompararForm.planParaComparar + plantillaSeleccionada().ExtensionPlanMod();
+                    if (planesParaComparar.Any(p => p.Id == nombrePlanMod))
                     {
-                        MessageBox.Show("El plan " + planParaCompararMod.Id + " debe estar rechazado");
-                    }
-                    if (!PlanYModSonIguales((PlanSetup)planesParaCompararForm.planParaComparar, (PlanSetup)planParaCompararMod))
-                    {
-                        //this.Close();
-                        return;
-                    }
+                        planMod = planesParaComparar.Where(p => p.Id == nombrePlanMod).First();
+                        if (planMod is PlanSetup && ((PlanSetup)planMod).ApprovalStatus != VMS.TPS.Common.Model.Types.PlanSetupApprovalStatus.Rejected)
+                        {
+                            MessageBox.Show("El plan " + planMod.Id + " debe estar rechazado");
+                        }
+                        if (!PlanYModSonIguales((PlanSetup)planContext, (PlanSetup)planMod))
+                        {
+                            //this.Close();
+                            return;
+                        }
 
+                    }
+                    if (planesParaComparar.Any(p => p.Id == nombrePlanParaCompararMod))
+                    {
+                        planParaCompararMod = planesParaComparar.Where(p => p.Id == nombrePlanParaCompararMod).First();
+                        if (planParaCompararMod is PlanSetup && ((PlanSetup)planParaCompararMod).ApprovalStatus != VMS.TPS.Common.Model.Types.PlanSetupApprovalStatus.Rejected)
+                        {
+                            MessageBox.Show("El plan " + planParaCompararMod.Id + " debe estar rechazado");
+                        }
+                        if (!PlanYModSonIguales((PlanSetup)planesParaCompararForm.planParaComparar, (PlanSetup)planParaCompararMod))
+                        {
+                            //this.Close();
+                            return;
+                        }
+
+                    }
                 }
+                Form2_DosPlanes = new Form2_DosPlanes(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, planesParaCompararForm.planParaComparar, planMod, planParaCompararMod);
             }
-            Form2_DosPlanes = new Form2_DosPlanes(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, planesParaCompararForm.planParaComparar, planMod, planParaCompararMod);
+            else
+            {
+                // Standalone: paciente/curso/los 2 planes se eligen dentro de Form2_DosPlanes (igual que Form2).
+                Form2_DosPlanes = new Form2_DosPlanes(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, null, null, null);
+            }
             Form2_DosPlanes.ShowDialog();
             if (hayContext)
             {

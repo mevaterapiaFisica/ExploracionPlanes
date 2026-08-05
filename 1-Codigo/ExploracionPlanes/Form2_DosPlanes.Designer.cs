@@ -62,6 +62,7 @@
             this.L_NombrePaciente = new System.Windows.Forms.Label();
             this.L_Advertencia = new System.Windows.Forms.Label();
             this.L_Advertencia2 = new System.Windows.Forms.Label();
+            this.CHB_EvaluarConEQD2 = new System.Windows.Forms.CheckBox();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_Estructuras)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_Analisis)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.DGV_Prescripciones)).BeginInit();
@@ -109,6 +110,7 @@
             this.LB_Planes.FormattingEnabled = true;
             this.LB_Planes.Location = new System.Drawing.Point(32, 272);
             this.LB_Planes.Name = "LB_Planes";
+            this.LB_Planes.SelectionMode = System.Windows.Forms.SelectionMode.MultiExtended;
             this.LB_Planes.Size = new System.Drawing.Size(119, 95);
             this.LB_Planes.TabIndex = 5;
             this.LB_Planes.SelectedIndexChanged += new System.EventHandler(this.LB_Planes_SelectedIndexChanged);
@@ -129,7 +131,7 @@
             this.Label3.Name = "Label3";
             this.Label3.Size = new System.Drawing.Size(98, 13);
             this.Label3.TabIndex = 8;
-            this.Label3.Text = "3. Seleccionar plan";
+            this.Label3.Text = "3. Seleccionar 2 planes";
             // 
             // DGV_Estructuras
             // 
@@ -382,11 +384,23 @@
             this.L_Advertencia2.Text = "Advertencia2";
             this.L_Advertencia2.Visible = false;
             // 
+            // CHB_EvaluarConEQD2
+            // 
+            this.CHB_EvaluarConEQD2.AutoSize = true;
+            this.CHB_EvaluarConEQD2.Location = new System.Drawing.Point(179, 580);
+            this.CHB_EvaluarConEQD2.Name = "CHB_EvaluarConEQD2";
+            this.CHB_EvaluarConEQD2.Size = new System.Drawing.Size(94, 17);
+            this.CHB_EvaluarConEQD2.TabIndex = 31;
+            this.CHB_EvaluarConEQD2.Text = "Evaluar EQD2";
+            this.CHB_EvaluarConEQD2.UseVisualStyleBackColor = true;
+            this.CHB_EvaluarConEQD2.CheckedChanged += new System.EventHandler(this.CHB_EvaluarConEQD2_CheckedChanged);
+            // 
             // Form2_DosPlanes
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(1318, 645);
+            this.Controls.Add(this.CHB_EvaluarConEQD2);
             this.Controls.Add(this.L_Advertencia2);
             this.Controls.Add(this.L_Advertencia);
             this.Controls.Add(this.L_NombrePaciente);
@@ -456,5 +470,6 @@
         private System.Windows.Forms.DataGridViewButtonColumn VolumenDmax;
         private System.Windows.Forms.Label L_Advertencia;
         private System.Windows.Forms.Label L_Advertencia2;
+        private System.Windows.Forms.CheckBox CHB_EvaluarConEQD2;
     }
 }

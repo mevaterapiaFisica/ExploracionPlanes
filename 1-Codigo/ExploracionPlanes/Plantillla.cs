@@ -175,21 +175,6 @@ namespace ExploracionPlanes
             }
         }
 
-        public void editar(TextBox TB_nombre, CheckBox CHB_esParaExtraer, BindingList<IRestriccion> ListaRestricciones, TextBox TB_notaPlantilla)
-        {
-            TB_nombre.Text = nombre;
-            if (esParaExtraccion)
-            {
-                CHB_esParaExtraer.Checked = true;
-            }
-            foreach (IRestriccion restriccion in listaRestricciones)
-            {
-                ListaRestricciones.Add(restriccion);
-            }
-            TB_notaPlantilla.Text = nota;
-
-        }
-
         public void editar(TextBox TB_nombre, CheckBox CHB_esParaExtraer, BindingList<IRestriccion> ListaRestricciones, TextBox TB_notaPlantilla, BindingList<Condicion> listaCondicionesNumFracc, BindingList<Condicion> listaCondicionesVolPTV)
         {
             TB_nombre.Text = nombre;

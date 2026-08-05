@@ -37,8 +37,7 @@ namespace ExploracionPlanes
             double _valorEsperado, double _valorTolerado, double _valorCorrespondiente, string _nota, Condicion _condicion, string _prioridad, string _planMod);
         bool chequearSamplingCoverage(PlanningItem plan, Structure estructura);
 
-        void editar(ComboBox CB_Estructura, TextBox TB_nombresAlt, ComboBox CB_TipoRestr, TextBox TB_valorCorrespondiente,
-            ComboBox CB_UnidadesCorresp, ComboBox CB_EsMenorQue, TextBox TB_ValorEsperado, TextBox TB_ValorTolerado, ComboBox CB_UnidadesValor, TextBox TB_nota, ComboBox CB_Prioridad);
+        DatosEdicionRestriccion datosEdicion();
 
         void editarGrupo(List<IRestriccion> lista, DataGridView tabla, ComboBox CB_Estructura, TextBox TB_nombresAlt, ComboBox CB_TipoRestr, TextBox TB_valorCorrespondiente,
             ComboBox CB_UnidadesCorresp, ComboBox CB_EsMenorQue, ComboBox CB_UnidadesValor, TextBox TB_nota,ListBox LB_TipoCondicion, ListBox LB_ListaCondiciones);

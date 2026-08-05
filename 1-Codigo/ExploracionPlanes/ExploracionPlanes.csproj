@@ -213,6 +213,7 @@
     <Compile Include="ColorearAnalisis.cs" />
     <Compile Include="Condicion.cs" />
     <Compile Include="DialogoWpf.cs" />
+    <Compile Include="DatosEdicionRestriccion.cs" />
     <Compile Include="FilaAnalisis.cs" />
     <Compile Include="Configuracion.cs" />
     <Compile Include="DesdeCSV.cs" />
@@ -222,11 +223,12 @@
     <Compile Include="Equipos.cs" />
     <Compile Include="Estilos.cs" />
     <Compile Include="Estructura.cs" />
-    <Compile Include="Form1_prioridades.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form1_prioridades.Designer.cs">
-      <DependentUpon>Form1_prioridades.cs</DependentUpon>
+    <Page Include="Form1_prioridades.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Form1_prioridades.xaml.cs">
+      <DependentUpon>Form1_prioridades.xaml</DependentUpon>
     </Compile>
     <Compile Include="Form1_ext.cs">
       <SubType>Form</SubType>
@@ -329,10 +331,6 @@
     <Compile Include="RestriccionIndiceConformidad.cs" />
     <Compile Include="RestriccionVolumen.cs" />
     <Compile Include="Script.cs" />
-    <EmbeddedResource Include="Form1_prioridades.resx">
-      <DependentUpon>Form1_prioridades.cs</DependentUpon>
-      <SubType>Designer</SubType>
-    </EmbeddedResource>
     <EmbeddedResource Include="Form1_ext.resx">
       <DependentUpon>Form1_ext.cs</DependentUpon>
       <SubType>Designer</SubType>

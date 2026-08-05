@@ -221,34 +221,28 @@ namespace ExploracionPlanes
             }
         }
 
-        public void editar(ComboBox CB_Estructura, TextBox TB_nombresAlt, ComboBox CB_TipoRestr, TextBox TB_valorCorrespondiente,
-     ComboBox CB_UnidadesCorresp, ComboBox CB_EsMenorQue, TextBox TB_ValorEsperado, TextBox TB_ValorTolerado, ComboBox CB_UnidadesValor, TextBox TB_nota, ComboBox CB_Prioridad)
+        public DatosEdicionRestriccion datosEdicion()
         {
-            CB_Estructura.Text = estructura.nombre;
-            for (int i=1; i<estructura.nombresPosibles.Count;i++)
+            var datos = new DatosEdicionRestriccion();
+            datos.NombreEstructura = estructura.nombre;
+            for (int i = 1; i < estructura.nombresPosibles.Count; i++)
             {
-                if (i>1)
+                if (i > 1)
                 {
-                    TB_nombresAlt.Text += "\r\n";
+                    datos.NombresAlt += "\r\n";
                 }
-                TB_nombresAlt.Text += estructura.nombresPosibles[i];
+                datos.NombresAlt += estructura.nombresPosibles[i];
             }
-            CB_TipoRestr.SelectedIndex = 0; //cambiar en cada restriccion
-            CB_Prioridad.Text = this.prioridad;
-            TB_valorCorrespondiente.Text = Metodos.validarYConvertirAString(valorCorrespondiente);
-            if (esMenorQue)
-            {
-                CB_EsMenorQue.SelectedIndex = 0;
-            }
-            else
-            {
-                CB_EsMenorQue.SelectedIndex = 1;
-            }
-            TB_ValorEsperado.Text = Metodos.validarYConvertirAString(valorEsperado);
-            TB_ValorTolerado.Text = Metodos.validarYConvertirAString(valorTolerado);
-            CB_UnidadesValor.SelectedItem = unidadValor;
-            CB_UnidadesCorresp.SelectedItem = unidadCorrespondiente;
-            TB_nota .Text= nota;
+            datos.IndiceTipoRestriccion = 0; //cambiar en cada restriccion
+            datos.Prioridad = prioridad;
+            datos.ValorCorrespondiente = Metodos.validarYConvertirAString(valorCorrespondiente);
+            datos.EsMenorQue = esMenorQue;
+            datos.ValorEsperado = Metodos.validarYConvertirAString(valorEsperado);
+            datos.ValorTolerado = Metodos.validarYConvertirAString(valorTolerado);
+            datos.UnidadValor = unidadValor;
+            datos.UnidadCorrespondiente = unidadCorrespondiente;
+            datos.Nota = nota;
+            return datos;
         }
 
         public void editarGrupo(List<IRestriccion> lista, DataGridView tabla, ComboBox CB_Estructura, TextBox TB_nombresAlt, ComboBox CB_TipoRestr, TextBox TB_valorCorrespondiente,

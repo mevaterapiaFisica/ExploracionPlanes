@@ -1,0 +1,178 @@
+<local:DialogoWpf x:Class="ExploracionPlanes.Form1_prioridades"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ExploracionPlanes"
+        Title="Creación de plantillas" Height="720" Width="990"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13"
+        Closing="Form1_prioridades_Closing">
+    <Window.Resources>
+        <Style x:Key="BotonPrimario" TargetType="Button">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="BotonSecundario" TargetType="Button" BasedOn="{StaticResource BotonPrimario}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1B2A4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#1B2A4A" />
+        </Style>
+        <Style TargetType="GroupBox">
+            <Setter Property="Margin" Value="0,0,0,10" />
+            <Setter Property="Padding" Value="8" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="Eyebrow">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- 1. Nombre plantilla -->
+        <Grid Grid.Row="0" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="220" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Grid.Column="0" Text="1. Nombre Plantilla:" VerticalAlignment="Center" Margin="0,0,8,0" />
+            <TextBox x:Name="TB_NombrePlantilla" Grid.Column="1" Padding="4" TextChanged="actualizarBotones" />
+            <CheckBox x:Name="CHB_esParaExtraccion" Grid.Column="3" Content="Es una plantilla de métricas" VerticalAlignment="Center" Checked="CHB_esParaExtraccion_CheckedChanged" Unchecked="CHB_esParaExtraccion_CheckedChanged" />
+        </Grid>
+
+        <!-- 2. Nueva restricción -->
+        <GroupBox Grid.Row="1" Header="2. Nueva Restricción">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="280" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="250" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="Auto" />
+                    <RowDefinition Height="8" />
+                    <RowDefinition Height="Auto" />
+                </Grid.RowDefinitions>
+
+                <!-- columna 1: estructura -->
+                <StackPanel Grid.Row="0" Grid.RowSpan="5" Grid.Column="0">
+                    <TextBlock Text="Estructura" Style="{StaticResource Eyebrow}" />
+                    <ComboBox x:Name="CB_Estructura" IsEditable="True" Margin="0,0,0,8" />
+                    <TextBlock Text="Nombres alternativos" Style="{StaticResource Eyebrow}" />
+                    <TextBox x:Name="TB_EstructuraNombresAlt" AcceptsReturn="True" TextWrapping="Wrap" Height="80" Padding="4" />
+                </StackPanel>
+
+                <!-- columna 2: tipo + valores -->
+                <StackPanel Grid.Row="0" Grid.Column="2">
+                    <TextBlock Text="Tipo de restricción" Style="{StaticResource Eyebrow}" />
+                    <ComboBox x:Name="CB_TipoRestriccion" SelectionChanged="CB_TipoRestriccion_SelectionChanged">
+                        <ComboBoxItem Content="Dosis" />
+                        <ComboBoxItem Content="Dmedia" />
+                        <ComboBoxItem Content="Dmax" />
+                        <ComboBoxItem Content="Volumen" />
+                        <ComboBoxItem Content="IC" />
+                    </ComboBox>
+                </StackPanel>
+                <Border x:Name="Panel_esMenorque" Grid.Row="2" Grid.Column="2">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="70" />
+                            <ColumnDefinition Width="4" />
+                            <ColumnDefinition Width="55" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="4" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <ComboBox x:Name="CB_MenorOMayor" Grid.Row="0" Grid.Column="0" Width="45" Margin="0,0,6,0">
+                            <ComboBoxItem Content="≤" />
+                            <ComboBoxItem Content="≥" />
+                        </ComboBox>
+                        <TextBox x:Name="TB_ValorEsperado" Grid.Row="0" Grid.Column="1" Padding="4" TextChanged="actualizarBotones" />
+                        <ComboBox x:Name="CB_ValorEsperadoUnidades" Grid.Row="0" Grid.Column="3" SelectionChanged="CB_ValorEsperadoUnidades_SelectionChanged" />
+                        <TextBlock Text="Tolerancia:" Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Margin="0,0,6,0" />
+                        <TextBox x:Name="TB_ValorTolerado" Grid.Row="2" Grid.Column="1" Padding="4" TextChanged="actualizarBotones" />
+                        <ComboBox x:Name="CB_ValorToleradoUnidades" Grid.Row="2" Grid.Column="3" SelectionChanged="CB_ValorToleradoUnidades_SelectionChanged" />
+                    </Grid>
+                </Border>
+                <StackPanel Grid.Row="4" Grid.Column="2" Orientation="Horizontal">
+                    <TextBlock x:Name="L_CorrespA" Visibility="Collapsed" VerticalAlignment="Center" TextWrapping="Wrap" Width="120" Margin="0,0,6,0" />
+                    <TextBox x:Name="TB_CorrespA" Visibility="Collapsed" Width="70" Padding="4" VerticalAlignment="Center" Margin="0,0,6,0" TextChanged="actualizarBotones" />
+                    <ComboBox x:Name="CB_CorrespAUnidades" Visibility="Collapsed" Width="55" VerticalAlignment="Center" />
+                </StackPanel>
+
+                <!-- columna 3: prioridad, condicionamiento, cargar de paciente -->
+                <StackPanel Grid.Row="0" Grid.Column="4">
+                    <TextBlock Text="Prioridad" Style="{StaticResource Eyebrow}" />
+                    <ComboBox x:Name="CB_prioridad" IsEditable="True" Width="60" HorizontalAlignment="Left" />
+                </StackPanel>
+                <StackPanel Grid.Row="2" Grid.Column="4" Orientation="Vertical">
+                    <Button x:Name="BT_CargarDesdePaciente" Content="Cargar desde un paciente" Style="{StaticResource BotonSecundario}" Margin="0,0,0,8" Click="BT_CargarDesdePaciente_Click" />
+                    <Button x:Name="BT_CondicionadaAOtraRestricción" Content="Condicionada a otra restricción" Style="{StaticResource BotonSecundario}" Click="BT_CondicionadaAOtraRestricción_Click" />
+                    <TextBlock x:Name="L_Condicionada" Visibility="Collapsed" Margin="0,6,0,0" TextWrapping="Wrap" />
+                </StackPanel>
+
+                <!-- columna 4: nota -->
+                <StackPanel Grid.Row="0" Grid.Column="5">
+                    <TextBlock Text="Nota/Referencia" Style="{StaticResource Eyebrow}" />
+                    <TextBox x:Name="TB_NotaRestriccion" AcceptsReturn="True" TextWrapping="Wrap" Height="50" Padding="4" />
+                </StackPanel>
+
+                <Button x:Name="BT_AgregarALista" Grid.Row="4" Grid.Column="5" Content="Agregar a la lista" Style="{StaticResource BotonPrimario}"
+                        HorizontalAlignment="Right" VerticalAlignment="Bottom" IsEnabled="False" Click="BT_AgregarALista_Click" />
+            </Grid>
+        </GroupBox>
+
+        <TextBlock Grid.Row="2" Text="3. Restricciones cargadas" Style="{StaticResource Eyebrow}" />
+
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="160" />
+                <ColumnDefinition Width="12" />
+                <ColumnDefinition Width="230" />
+            </Grid.ColumnDefinitions>
+
+            <ListBox x:Name="LB_listaRestricciones" Grid.Column="0" SelectionMode="Extended" SelectionChanged="actualizarBotones" DisplayMemberPath="etiqueta" />
+
+            <StackPanel Grid.Column="2">
+                <Button x:Name="BT_EditarRestriccion" Content="Editar Restricción" Style="{StaticResource BotonSecundario}" Margin="0,0,0,8" IsEnabled="False" Click="BT_EditarRestriccion_Click" />
+                <Button x:Name="BT_EliminarRestriccion" Content="Eliminar Restricciones" Style="{StaticResource BotonSecundario}" Margin="0,0,0,8" IsEnabled="False" Click="BT_EliminarRestriccion_Click" />
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="BT_RestriccionArriba" Content="▲" Width="35" Height="34" Style="{StaticResource BotonSecundario}" Margin="0,0,6,0" IsEnabled="False" Click="BT_RestriccionArriba_Click" />
+                    <Button x:Name="BT_RestriccionAbajo" Content="▼" Width="35" Height="34" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_RestriccionAbajo_Click" />
+                </StackPanel>
+            </StackPanel>
+
+            <StackPanel Grid.Column="4">
+                <TextBlock Text="4. Nota (opcional)" Style="{StaticResource Eyebrow}" />
+                <TextBox x:Name="TB_NotaPlantilla" AcceptsReturn="True" TextWrapping="Wrap" Height="100" Padding="4" Margin="0,0,0,12" />
+                <Button x:Name="BT_AplicarPrioridad" Content="Aplicar prioridad" Style="{StaticResource BotonSecundario}" Margin="0,0,0,8" Click="BT_AplicarPrioridad_Click" />
+                <Button x:Name="BT_EvaluarEnPlanMod" Content="Evaluar en plan Mod" Style="{StaticResource BotonSecundario}" Margin="0,0,0,8" Click="BT_EvaluarEnPlanMod_Click" />
+                <Button x:Name="BT_AgregarNotaLote" Content="Agregar Nota" Style="{StaticResource BotonSecundario}" Click="BT_AgregarNotaLote_Click" />
+            </StackPanel>
+        </Grid>
+
+        <Button x:Name="BT_GuardarPlantilla" Grid.Row="4" Content="Guardar plantilla" Style="{StaticResource BotonPrimario}"
+                HorizontalAlignment="Right" Margin="0,12,0,0" IsEnabled="False" Click="BT_GuardarPlantilla_Click" />
+    </Grid>
+</local:DialogoWpf>

@@ -319,9 +319,30 @@ de grilla — texto de estructuras largas se cortaba. Fix: ventana 780×620, anc
 generosos, `GridLinesVisibility="All"`, header con fondo de marca, filas alternadas. Confirmado por
 el usuario: **resuelto**.
 
-**Pendiente de Fase 3**: `Form2`, `Form2_DosPlanes`, `Form1_ext`, `Form1_prioridades` — estos sí
-necesitan que `FilaAnalisis` incorpore el `Brush` de pass/fail (no usado por `PlantillaBlanco`, que
-no analiza un plan real) y reescribir la lógica de actualización en vivo de celdas.
+### Form1_prioridades: COMPLETADO
+
+Resultó ser más simple de lo estimado en §5 (esa nota agrupaba "alto acoplamiento" en los 4
+formularios grandes por igual) — `Form1_prioridades` **no usa `DataGridView`**, solo un `ListBox`
+(`LB_listaRestricciones`). Migrado a `Window` WPF con `ListBox.ItemsSource` (mismo patrón que
+Fase 1) sobre el mismo `BindingList<IRestriccion>` de siempre.
+
+Encontrado en el camino (no opcional, bloqueaba la migración): `IRestriccion.editar(ComboBox,
+TextBox, ...)` — parte de la interfaz, implementada en las 5 clases de restricción — tomaba
+controles WinForms directo por parámetro. Se verificó que tiene un solo caller (`Form1_prioridades`)
+y se reemplazó por `IRestriccion.datosEdicion()`, que devuelve un DTO (`DatosEdicionRestriccion.cs`)
+sin ninguna dependencia de UI. `editarGrupo(...)` (la variante con `DataGridView`, usada solo por
+`Form1_ext`) no se tocó. Detalle completo y test de la lógica pura en `Tests.md` (2026-08-05).
+
+Problemas de layout de la primera pasada (screenshot del usuario): botones "Condicionada a otra
+restricción"/"Editar Restricción"/"Eliminar Restricciones" cortados, label "correspondiente a un
+volumen de:" partiendo palabras a la mitad. Fix: columnas más anchas, ventana 900×700 → 990×720.
+Confirmado por el usuario: **resuelto**.
+
+**Pendiente de Fase 3**: `Form2`, `Form2_DosPlanes`, `Form1_ext` — estos sí usan `DataGridView` por
+índice de celda y necesitan que `FilaAnalisis` incorpore el `Brush` de pass/fail (no usado todavía,
+ni por `PlantillaBlanco` ni por `Form1_prioridades`, que no analizan un plan real) y reescribir la
+lógica de actualización en vivo de celdas. `Form1_ext` además usa `editarGrupo(DataGridView, ...)`,
+sin tocar hasta ahora.
 
 Runtime: WPF se hace sobre .NET Framework 4.5.1 primero (no toca ESAPI por `HintPath` ni
 PDFsharp/MigraDoc-GDI). Migrar a .NET moderno (6/8) queda como paso separado y posterior, evaluado

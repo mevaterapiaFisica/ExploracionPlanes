@@ -270,6 +270,74 @@ Ambos bugs dependen de ESAPI real (`PlanSetup`/`Application.CreateApplication`) 
 
 ---
 
+## 2026-08-05 — Migración de Form1_prioridades a WPF (Fase 3): IRestriccion.editar() ya no depende de WinForms
+
+### Motivo del cambio de alcance
+
+Al migrar `Form1_prioridades` (editor de plantillas, sin `DataGridView` — usa `LB_listaRestricciones`,
+un `ListBox` simple) se encontró que `IRestriccion.editar(ComboBox, TextBox, ...)` — parte de la
+interfaz, implementada en `RestriccionDosis`/`RestriccionDosisMedia`/`RestriccionDosisMax`/
+`RestriccionVolumen`/`RestriccionIndiceConformidad` — tomaba controles `System.Windows.Forms`
+directo por parámetro y les escribía `.Text`/`.SelectedIndex`. No compila contra controles WPF.
+`Plantilla.editar(TextBox, CheckBox, ...)` (el overload de 4 parámetros) tenía el mismo problema.
+
+Se verificó que ambos métodos tienen un solo caller cada uno:
+- `IRestriccion.editar(...)` (el de 11 parámetros): solo `Form1_prioridades.cs`. `editarGrupo(...)`
+  (el que sí usa `DataGridView`) es un método distinto, usado solo por `Form1_ext.cs` — no se tocó.
+- `Plantilla.editar(...)` de 4 parámetros: solo `Form1_prioridades.cs`. El overload de 6 parámetros
+  (con las listas de condiciones) es el que usa `Form1_ext.cs` — no se tocó.
+
+Esto permitió una refactorización acotada: `Plantilla.editar(...)` de 4 parámetros se eliminó (su
+lógica se inlineó en el único call site, ya que `Plantilla.nombre`/`esParaExtraccion`/`nota` ya son
+propiedades públicas). `IRestriccion.editar(...)` pasó a `IRestriccion.datosEdicion()`, que devuelve
+un DTO nuevo (`DatosEdicionRestriccion.cs`) sin ninguna referencia a controles de UI — el formulario
+que lo llame decide a qué control asignar cada campo. Cero impacto en `Form1_ext`/`Form2`/
+`Form2_DosPlanes` (no tocan estos métodos).
+
+### Qué se testeó
+
+La lógica de `datosEdicion()` por tipo de restricción es pura (sin ESAPI) pero no se puede probar
+importando las clases reales (el proyecto principal no compila como librería .NET moderna por las
+referencias a ESAPI). Se replicó la lógica literal en un test nuevo aislado,
+`Tests/TestEdicionRestricciones/`, siguiendo la convención de `Tests/TestMejoras/`:
+
+```
+=== datosEdicion(): índice de tipo por restricción ===
+OK   RestriccionDosis -> índice 0
+OK   RestriccionDosisMedia -> índice 1
+OK   RestriccionDosisMax -> índice 2
+OK   RestriccionVolumen -> índice 3
+OK   RestriccionIndiceConformidad -> índice 4
+=== datosEdicion(): join de nombres alternativos (mismo comportamiento que editar() original) ===
+OK   Dosis/IC: sin línea vacía inicial
+OK   DosisMedia/DosisMax/Volumen: con línea vacía inicial (bug preexistente preservado)
+OK   Dosis/IC con un solo alt: sin salto de línea sobrante
+OK   DosisMedia/DosisMax/Volumen con un solo alt: sigue con línea vacía inicial
+=== datosEdicion(): ValorCorrespondiente es null solo para Dmedia/Dmax (no se edita para esos tipos) ===
+OK   Dosis expone ValorCorrespondiente ('12')
+OK   Volumen expone ValorCorrespondiente ('95')
+OK   IndiceConformidad expone ValorCorrespondiente ('60')
+OK   DosisMedia NO expone ValorCorrespondiente (queda null, el caller no toca el TextBox)
+OK   DosisMax NO expone ValorCorrespondiente (queda null, el caller no toca el TextBox)
+
+TODOS LOS CHEQUEOS OK
+```
+
+Importante: 3 de los 5 tipos (`DosisMedia`/`DosisMax`/`Volumen`) tenían — y siguen teniendo, a
+propósito, sin corregir — un bug preexistente donde el join de nombres alternativos antepone una
+línea vacía inicial (`TB_nombresAlt.Text += "\r\n" + nombre` desde `i=0` en vez de comprobar `i>1`
+como hacen `Dosis`/`IndiceConformidad`). No se corrigió porque no era el pedido y cambiar el
+comportamiento observable de un campo de texto real sería un cambio funcional aparte, no parte de
+la migración a WPF.
+
+### El resto (formulario completo)
+
+Depende del `Estructura`/`Plantilla`/DTOs con datos reales y del layout — se verificó por lectura de
+código y compilación completa con MSBuild (VS2022), sin errores, y por el circuito de screenshots
+del usuario (`screenshots/WPF/`) ya establecido en fases anteriores.
+
+---
+
 ## Convención para tests futuros
 
 A partir de este cambio, todo cambio sobre código funcional debe incluir un test que compare comportamiento antes/después, documentado como una entrada nueva en este archivo (fecha, qué se cambió, cómo se testeó, números usados, resultado). Si el código depende de ESAPI y no se puede instanciar fuera de Eclipse, aislar la lógica pura afectada (como se hizo en `Tests/TestEQD2/`) en vez de omitir el test.

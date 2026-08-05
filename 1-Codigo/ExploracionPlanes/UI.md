@@ -238,13 +238,30 @@ original), no aparecen en la barra de tareas ni en Alt-Tab — al volver a la ap
 frente la ventana principal (que sigue bloqueada por el diálogo modal invisible), sin forma de
 llegar al diálogo real.
 
-Fix aplicado: `DialogoWpf.cs`, una clase base chica (`Window` + `OnSourceInitialized` que fija el
-`Owner` vía `WindowInteropHelper` a `System.Windows.Forms.Form.ActiveForm`), de la que heredan los 7
-diálogos (incluido `FormConfiguracion` de Fase 0) cambiando el tag raíz del XAML a
-`<local:DialogoWpf>`. Un solo punto de arreglo en vez de tocar los ~15 call sites que hacen
-`.ShowDialog()`.
+Fix aplicado: `DialogoWpf.cs`, una clase base chica (`Window`) de la que heredan los 7 diálogos
+(incluido `FormConfiguracion` de Fase 0) cambiando el tag raíz del XAML a `<local:DialogoWpf>`. Un
+solo punto de arreglo en vez de tocar los ~15 call sites que hacen `.ShowDialog()`. El fix real fija
+el `Owner` vía `WindowInteropHelper` a `System.Windows.Forms.Form.ActiveForm` **en el constructor**,
+no en `OnSourceInitialized` — ese hook corre demasiado tarde (WPF ya marca el diálogo como "shown"
+en ese punto) y tira `InvalidOperationException: Cannot set Owner property after Dialog is shown`.
+Confirmado por el usuario: **resuelto**, Alt-Tab ok en los 7 diálogos.
 
-**Pendiente de reverificar por el usuario** con el fix aplicado (Alt-Tab sobre cada diálogo).
+`DialogoWpf` también hace foco automático en el primer `TextBox`/`PasswordBox` visible del árbol
+visual al abrir (recorrido recursivo por `VisualTreeHelper`, sin necesidad de tocar cada diálogo
+individualmente).
+
+### Clipping de texto encontrado en la ronda de screenshots
+
+- `FormTB`: el texto de instrucción usaba `Label` sin wrap y ventana de tamaño fijo (260×180) — con
+  textos largos (ej. "Ingrese contraseña para edición de plantillas") se cortaba contra el borde de
+  la ventana. Fix: `Label` → `TextBlock` con `TextWrapping="Wrap"` + `SizeToContent="Height"` (la
+  ventana crece verticalmente según el texto). Como el control cambió de `Label` a `TextBlock`, los
+  6 call sites que seteaban `L_Texto.Content` pasaron a `L_Texto.Text`.
+- `ImportarNombresEstructuras`: el botón "Abrir paciente" quedaba apretado en media columna junto al
+  campo ID. Fix: esa fila pasa a ocupar todo el ancho de la ventana (`Grid.ColumnSpan="3"`) y se
+  ensanchó la ventana de 460 a 540px.
+
+Confirmado por el usuario: **resuelto**, todo funciona ok.
 
 ### Anomalía de build a vigilar
 
@@ -254,6 +271,8 @@ sesión lo tocara (no está en el historial de cambios hechos). Se corrigió a m
 la causa (sospecha: algún proceso de fondo del entorno tocando el `.csproj` al detectar contenido
 WPF nuevo). Si vuelve a pasar, revisar `<OutputType>` antes de asumir que el build está roto por
 otra razón.
+
+**Fase 1: cerrada.** Commit `aa2eb2d`, pusheado a `origin/master`.
 
 **Fase 2 — Decisión de binding** antes de tocar los formularios con `DataGridView` por índice
 (`PlantillaBlanco`, `Form2`, `Form2_DosPlanes`, `Form1_ext`, `Form1_prioridades`): MVVM liviano

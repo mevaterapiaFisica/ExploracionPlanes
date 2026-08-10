@@ -655,18 +655,26 @@ namespace ExploracionPlanes
 
         private void Form2_Closing(object sender, CancelEventArgs e)
         {
-            if (hayContext)
+            // ponytail: una excepción no manejada acá tira abajo todo el proceso (comparte hilo de
+            // UI con las demás ventanas, no solo esta) — Dispose() de la sesión de Eclipse es lo más
+            // propenso a fallar (login ya inválido, etc.), no vale la pena arriesgar el resto de la app.
+            // No se llama a cerrarPaciente()/ClosePatient() antes de Dispose(): son dos cierres nativos
+            // seguidos contra la misma sesión de Vision, sospecha de fallo (Dispose ya cierra el
+            // paciente solo). Se limpian las listas igual, sin tocar la sesión de Eclipse dos veces.
+            try
             {
+                if (!hayContext)
+                {
+                    LB_Cursos.Items.Clear();
+                    LB_Planes.Items.Clear();
+                }
+                if (app != null)
+                {
+                    app.Dispose();
+                }
             }
-            else if (paciente != null)
+            catch (Exception)
             {
-                LB_Cursos.Items.Clear();
-                LB_Planes.Items.Clear();
-                cerrarPaciente();
-            }
-            if (app != null)
-            {
-                app.Dispose();
             }
         }
 

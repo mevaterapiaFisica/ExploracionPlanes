@@ -468,6 +468,57 @@ Como consecuencia incidental de la reescritura: el campo `Main.planParaComparar`
 muerto por el compilador (`warning CS0414`) en builds de sesiones anteriores, se eliminó al tocar
 ese archivo.
 
+**BT_CompararPlanes habilitado sin selección**: en el original, `habilitarBotones()` habilitaba
+"Comparar dos planes" sin atarlo a `LB_Plantillas.SelectedItems.Count == 1` (a diferencia de todos
+los demás botones). Preexistente, pero el usuario lo marcó como bug real durante la ronda de
+screenshots — se agregó el mismo gating que tienen los otros botones.
+
+## Fase 5 (no planeada originalmente): chrome de ventana unificado
+
+El usuario notó que todas las ventanas seguían abriendo con la barra de título gris nativa de
+Windows (fuente del sistema), inconsistente con la paleta ya migrada. Se armó un `ControlTemplate`
+de `Window` compartido en `DialogoWpf` (la clase base de las 14 ventanas) — barra de 36px `#1B2A4A`
+con el título y 3 botones (minimizar/maximizar/cerrar), reemplaza el chrome nativo. Cero cambios en
+los XAML individuales, todo entra por la clase base.
+
+Detalles de implementación (por si hay que tocar esto de nuevo):
+- El `ControlTemplate`/`Style` se define como XAML embebido en un string parseado con
+  `XamlReader.Parse` en el constructor de `DialogoWpf`, **no** como un `.xaml`/`ResourceDictionary`
+  separado cargado por URI (`pack://application:,,,`). En el modo plugin de Eclipse (`Script.cs`)
+  nunca se crea un `System.Windows.Application` — la resolución de recursos por URI de paquete no es
+  confiable sin uno. Parsear un string en memoria no depende de eso.
+- Redimensionado sin chrome nativo: `WindowChrome.SetWindowChrome(this, ...)` con `CaptionHeight=0`
+  (dibujamos la barra nosotros) pero `ResizeBorderThickness` para conservar los bordes de resize.
+- Arrastre de ventana: `MouseLeftButtonDown` en la barra → `DragMove()`. Doble click → alternar
+  maximizado. Ventanas `WindowStyle="ToolWindow"` o `ResizeMode="NoResize"` ocultan minimizar/maximizar
+  (igual que el chrome nativo original).
+
+### Bugs reales encontrados en la ronda de screenshots
+
+1. **Glifos de min/max/cerrar como cuadrados vacíos**: se usó la fuente `Segoe MDL2 Assets`, que
+   **no existe en Windows 7** — las PCs con acceso a Eclipse corren Windows 7 (ver §4). Fix:
+   símbolos Unicode básicos (`−`, `□`/`▣`, `×`) con `Segoe UI`, soportados desde XP.
+2. **Click en los botones de la barra disparaba `DragMove()`**: el `MouseLeftButtonDown` de la
+   barra completa capturaba el click antes de que el `Button` hijo lo procesara — cerrar/minimizar/
+   maximizar quedaba intermitente. Fix: la barra ignora el evento si el click se originó en un
+   descendiente `Button` (recorrido del árbol visual hacia arriba).
+3. **"Comparar dos planes" habilitado sin plantilla seleccionada** — ver arriba (Fase 4).
+
+### Bug conocido, no resuelto: cerrar `Form2`/`Form2_DosPlanes` en standalone con login real a
+Eclipse cierra toda la app
+
+Solo pasa en las ventanas que llaman `Application.CreateApplication(null, null)` (login interactivo
+real) — `PlantillaBlanco`, que no toca ESAPI, no lo tiene. El crash log apunta a
+`vmod.dll`/`NErrorHandling::AbortOnException` (Varian Vision) — es un fallo a **nivel nativo**, no
+una excepción .NET, así que ningún `try/catch` de C# lo puede atrapar. Se probó sacar el
+`cerrarPaciente()`/`ClosePatient()` explícito antes de `app.Dispose()` (hipótesis: doble cierre
+nativo contra la misma sesión) — no lo resolvió. **Se deja sin resolver a pedido del usuario**: la
+combinación real que dispara esto (standalone + login interactivo a Eclipse en `Form2`/
+`Form2_DosPlanes`) es rara en uso clínico real — el flujo normal es plugin (`Script.cs`, sin este
+código) para analizar, y standalone solo para crear/editar plantillas (`Main`/`Form1_prioridades`,
+sin login a Eclipse tampoco). Si se retoma: revisar si Vision requiere un orden/timing específico
+de `ClosePatient`/`Dispose`, o si hay que evitar el login interactivo por completo en ese flujo.
+
 ### Tokens de diseño para la UI nueva
 
 - **Color**: `#1B2A4A` (azul clínico oscuro, headers/acentos), `#F7F8FA` (fondo neutro), `#2E7D5B`

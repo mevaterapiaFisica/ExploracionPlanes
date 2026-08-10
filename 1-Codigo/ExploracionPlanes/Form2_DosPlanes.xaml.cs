@@ -578,18 +578,24 @@ namespace ExploracionPlanes
 
         private void Form2_Closing(object sender, CancelEventArgs e)
         {
-            if (hayContext)
+            // ponytail: ver el mismo comentario en Form2.xaml.cs - excepción no manejada acá
+            // afecta a todo el proceso, no solo a esta ventana. No se llama a cerrarPaciente()
+            // antes de Dispose() (dos cierres nativos seguidos contra la misma sesión, sospecha
+            // de fallo - Dispose ya cierra el paciente solo).
+            try
             {
+                if (!hayContext)
+                {
+                    LB_Cursos.Items.Clear();
+                    LB_Planes.Items.Clear();
+                }
+                if (app != null)
+                {
+                    app.Dispose();
+                }
             }
-            else if (paciente != null)
+            catch (Exception)
             {
-                LB_Cursos.Items.Clear();
-                LB_Planes.Items.Clear();
-                cerrarPaciente();
-            }
-            if (app != null)
-            {
-                app.Dispose();
             }
         }
 

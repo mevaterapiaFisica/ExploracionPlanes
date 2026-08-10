@@ -274,7 +274,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                BT_CompararPlanes.IsEnabled = true;
+                BT_CompararPlanes.IsEnabled = LB_Plantillas.SelectedItems.Count == 1;
                 BT_Nueva.IsEnabled = editaPlantilla;
                 BT_NuevaConCondiciones.IsEnabled = editaPlantilla;
                 BT_Editar.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla;

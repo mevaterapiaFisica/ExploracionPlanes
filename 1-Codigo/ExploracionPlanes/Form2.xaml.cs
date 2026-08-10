@@ -1,25 +1,20 @@
-﻿using System;
+using System;
 using System.IO;
 using System.Collections.Generic;
-using System.Drawing;
-using System.Drawing.Printing;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Data;
 using System.Linq;
-using System.Text;
-using System.Windows.Forms;
+using System.Windows;
+using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
-using MigraDoc.Rendering.Forms;
-
 
 namespace ExploracionPlanes
 {
-    public partial class Form2 : Form
+    public partial class Form2 : DialogoWpf
     {
-
         Patient paciente;
         Course curso;
         PlanningItem plan;
@@ -28,8 +23,6 @@ namespace ExploracionPlanes
         Plantilla plantilla;
         Structure ptvCondicion;
         bool hayContext = false;
-        PrintDialog printDialog1 = new PrintDialog();
-        PrintPreviewDialog printPreviewDialog1 = new PrintPreviewDialog();
         VMS.TPS.Common.Model.API.Application app;
         static string pathParEstructuras => Properties.Settings.Default.Path + @"\paresEstructuras\";
         static string pathPrescripciones => Properties.Settings.Default.Path + @"\prescripciones\";
@@ -37,12 +30,19 @@ namespace ExploracionPlanes
         public static string pathReportesJson => Properties.Settings.Default.Path + @"\Reportes\Json\";
         string plantillaNotaOriginal = "";
 
+        ObservableCollection<FilaEstructura> filasEstructuras = new ObservableCollection<FilaEstructura>();
+        ObservableCollection<FilaPrescripcion> filasPrescripciones = new ObservableCollection<FilaPrescripcion>();
+        ObservableCollection<FilaAnalisis> filasAnalisis = new ObservableCollection<FilaAnalisis>();
 
         public Form2(Plantilla _plantilla, bool _hayContext = false, Patient _pacienteContext = null, PlanningItem _planContext = null, User _usuarioContext = null, PlanningItem _planMod = null)
         {
             InitializeComponent();
+            DGV_Estructuras.ItemsSource = filasEstructuras;
+            DGV_Prescripciones.ItemsSource = filasPrescripciones;
+            DGV_Análisis.ItemsSource = filasAnalisis;
+
             plantilla = _plantilla;
-            this.Text = plantilla.nombre;
+            Title = plantilla.nombre;
             hayContext = _hayContext;
             if (_hayContext)
             {
@@ -54,18 +54,18 @@ namespace ExploracionPlanes
                 aplicarDuplicadosGuardados();
                 llenarDGVEstructuras();
                 llenarDGVPrescripciones();
-                BT_Analizar.Enabled = true;
+                BT_Analizar.IsEnabled = true;
 
                 L_NombrePaciente.Text = paciente.LastName + ", " + paciente.FirstName;
-                L_NombrePaciente.Visible = true;
-                this.Text += " - " + paciente.LastName + ", " + paciente.FirstName;
+                L_NombrePaciente.Visibility = Visibility.Visible;
+                Title += " - " + paciente.LastName + ", " + paciente.FirstName;
                 plantillaNotaOriginal = plantilla.nota;
             }
             else
             {
                 try
                 {
-                    app = VMS.TPS.Common.Model.API.Application.CreateApplication(null,null);
+                    app = VMS.TPS.Common.Model.API.Application.CreateApplication(null, null);
                 }
                 catch (Exception)
                 {
@@ -84,14 +84,14 @@ namespace ExploracionPlanes
             {
                 paciente = app.OpenPatientById(ID);
                 L_NombrePaciente.Text = paciente.LastName + ", " + paciente.FirstName;
-                L_NombrePaciente.Visible = true;
-                this.Text += " - " + paciente.LastName + ", " + paciente.FirstName;
+                L_NombrePaciente.Visibility = Visibility.Visible;
+                Title += " - " + paciente.LastName + ", " + paciente.FirstName;
                 return true;
             }
             else
             {
                 MessageBox.Show("El paciente no existe");
-                L_NombrePaciente.Visible = false;
+                L_NombrePaciente.Visibility = Visibility.Collapsed;
                 return false;
             }
         }
@@ -142,7 +142,6 @@ namespace ExploracionPlanes
         public string equipo()
         {
             string equipoID = "";
-
             if (planSeleccionado() is PlanSetup)
             {
                 equipoID = ((PlanSetup)planSeleccionado()).Beams.First().TreatmentUnit.Id;
@@ -173,12 +172,15 @@ namespace ExploracionPlanes
             return lista;
         }
 
-
-        private void BT_AbrirPaciente_Click(object sender, EventArgs e)
+        private void BT_AbrirPaciente_Click(object sender, RoutedEventArgs e)
         {
+            // Limpiar ANTES de abrirPaciente(): ese método cierra el paciente anterior (dispose de
+            // sus Course), y si la lista todavía los referencia en ese momento, el Clear() de más
+            // abajo dispararía SelectionChanged apuntando a un Course ya disposed -> crash.
+            LB_Cursos.Items.Clear();
+            LB_Planes.Items.Clear();
             if (abrirPaciente(TB_ID.Text))
             {
-                LB_Cursos.Items.Clear();
                 foreach (Course curso in listaCursos(paciente))
                 {
                     LB_Cursos.Items.Add(curso);
@@ -188,13 +190,17 @@ namespace ExploracionPlanes
                     LB_Cursos.SelectedIndex = 0;
                 }
             }
-
         }
 
-        private void LB_Cursos_SelectedIndexChanged(object sender, EventArgs e)
+        private void LB_Cursos_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             LB_Planes.Items.Clear();
-            foreach (PlanningItem plan in listaPlanes(cursoSeleccionado()))
+            Course cursoElegido = LB_Cursos.SelectedItem as Course;
+            if (cursoElegido == null)
+            {
+                return;
+            }
+            foreach (PlanningItem plan in listaPlanes(cursoElegido))
             {
                 LB_Planes.Items.Add(plan);
             }
@@ -206,28 +212,18 @@ namespace ExploracionPlanes
 
         private void llenarDGVEstructuras()
         {
-            DGV_Estructuras.Rows.Clear();
-            DGV_Estructuras.ColumnCount = 2;
+            filasEstructuras.Clear();
             foreach (Estructura estructura in plantilla.estructuras())
             {
-                DGV_Estructuras.Rows.Add();
-                DGV_Estructuras.Rows[DGV_Estructuras.Rows.Count - 1].Cells[0].Value = estructura.nombre;
+                filasEstructuras.Add(new FilaEstructura { NombreSlot = estructura.nombre });
             }
-
-            DataGridViewComboBoxColumn dgvCBCol = (DataGridViewComboBoxColumn)DGV_Estructuras.Columns[1];
-            dgvCBCol.DataSource = Estructura.listaEstructurasID(Estructura.listaEstructuras(planSeleccionado()));
-
             asociarEstructuras();
-            DGV_Estructuras.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-            DGV_Estructuras.Columns[0].ReadOnly = true;
-            DGV_Estructuras.Columns[1].ReadOnly = false;
-            //DGV_Estructuras.Columns[2].ReadOnly = false;
+            actualizarBotonAnalizar();
         }
 
         private void llenarDGVPrescripciones()
         {
-            DGV_Prescripciones.Rows.Clear();
-            DGV_Prescripciones.ColumnCount = 2;
+            filasPrescripciones.Clear();
             double prescripcion = 0;
             if (planSeleccionado() is PlanSetup)
             {
@@ -235,21 +231,19 @@ namespace ExploracionPlanes
             }
             else
             {
-                foreach (PlanSetup planS in ((PlanSum)planSeleccionado()).PlanSetups) //asumo que todos los planes suman con peso 1. Más adelante se puede mejorar con PlanSumComponents
+                foreach (PlanSetup planS in ((PlanSum)planSeleccionado()).PlanSetups)
                 {
                     prescripcion += planS.TotalPrescribedDose.Dose / 100;
                 }
             }
-
             foreach (Estructura estructura in plantilla.estructurasParaPrescribir())
             {
-                DGV_Prescripciones.Rows.Add();
-                DGV_Prescripciones.Rows[DGV_Prescripciones.Rows.Count - 1].Cells[0].Value = estructura.nombre;
-                DGV_Prescripciones.Rows[DGV_Prescripciones.Rows.Count - 1].Cells[1].Value = prescripcionPredefinida(estructura, plantilla, Math.Round(prescripcion, 2),paciente,planSeleccionado());
+                filasPrescripciones.Add(new FilaPrescripcion
+                {
+                    Estructura = estructura.nombre,
+                    Dosis = prescripcionPredefinida(estructura, plantilla, Math.Round(prescripcion, 2), paciente, planSeleccionado()).ToString()
+                });
             }
-            DGV_Prescripciones.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-            DGV_Prescripciones.Columns[0].ReadOnly = true;
-            DGV_Prescripciones.Columns[1].ReadOnly = false;
         }
 
         private void aplicarPrescripciones()
@@ -258,53 +252,57 @@ namespace ExploracionPlanes
             {
                 if (restriccion.dosisEstaEnPorcentaje())
                 {
-                    foreach (DataGridViewRow fila in DGV_Prescripciones.Rows)
+                    foreach (var fila in filasPrescripciones)
                     {
-                        if (restriccion.estructura.nombre.Equals(fila.Cells[0].Value))
+                        if (restriccion.estructura.nombre.Equals(fila.Estructura))
                         {
-                            restriccion.prescripcionEstructura = Convert.ToDouble(fila.Cells[1].Value);
+                            restriccion.prescripcionEstructura = Metodos.validarYConvertirADouble(fila.Dosis);
                             break;
                         }
                     }
                 }
             }
-
         }
 
         private void asociarEstructuras()
         {
             List<parEstructura> memoria = memoriaEstructuras(paciente, planSeleccionado());
             List<Structure> estructurasPlan = Estructura.listaEstructuras(planSeleccionado());
-            for (int i = 0; i < DGV_Estructuras.Rows.Count; i++)
+            for (int i = 0; i < filasEstructuras.Count; i++)
             {
-                string nombreSlot = DGV_Estructuras.Rows[i].Cells[0].Value.ToString();
+                var fila = filasEstructuras[i];
+                string nombreSlot = fila.NombreSlot;
                 List<string> nombresPosibles = plantilla.estructuras()[i].nombresPosibles;
                 var candidatos = Estructura.candidatosPorDistancia(nombresPosibles, estructurasPlan);
 
-                // El combo de esta fila se ordena de más a menos parecido (Damerau-Levenshtein) en vez del orden arbitrario del plan.
-                var cell = (DataGridViewComboBoxCell)DGV_Estructuras.Rows[i].Cells[1];
-                List<string> itemsOrdenados = candidatos.Select(c => c.Item1.Id).ToList();
-                itemsOrdenados.Add("");
-                cell.DataSource = itemsOrdenados;
+                // "" va primero (no al final) para que al abrir el combo de una fila sin matchear
+                // el desplegable arranque arriba en vez de saltar directo al final de la lista.
+                List<string> itemsOrdenados = new List<string> { "" };
+                itemsOrdenados.AddRange(candidatos.Select(c => c.Item1.Id));
+                fila.Opciones.Clear();
+                foreach (string item in itemsOrdenados)
+                {
+                    fila.Opciones.Add(item);
+                }
 
                 Structure estructuraExacta = Estructura.asociarConLista(nombresPosibles, estructurasPlan);
                 if (estructuraExacta != null)
                 {
-                    cell.Value = estructuraExacta.Id;
+                    fila.StructureId = estructuraExacta.Id;
                     continue;
                 }
                 string idMemoria = structureDeEstructura(nombreSlot, memoria);
                 if (!string.IsNullOrEmpty(idMemoria) && itemsOrdenados.Contains(idMemoria))
                 {
-                    cell.Value = idMemoria;
+                    fila.StructureId = idMemoria;
                 }
                 else if (candidatos.Count > 0 && candidatos[0].Item2 <= Estructura.DistanciaMaximaSugerida)
                 {
-                    cell.Value = candidatos[0].Item1.Id;
+                    fila.StructureId = candidatos[0].Item1.Id;
                 }
                 else
                 {
-                    cell.Value = "";
+                    fila.StructureId = "";
                 }
             }
         }
@@ -334,17 +332,42 @@ namespace ExploracionPlanes
             }
         }
 
-        private void BT_DuplicarEstructura_Click(object sender, EventArgs e)
+        private void BT_DuplicarEstructura_Click(object sender, RoutedEventArgs e)
         {
-            if (DGV_Estructuras.CurrentRow == null)
+            if (!(DGV_Estructuras.SelectedItem is FilaEstructura filaActual))
             {
                 MessageBox.Show("Seleccione primero la fila de la estructura a duplicar.");
                 return;
             }
-            string nombreSlot = DGV_Estructuras.CurrentRow.Cells[0].Value.ToString();
-            duplicarEstructura(nombreSlot);
+            duplicarEstructura(filaActual.NombreSlot);
             llenarDGVEstructuras();
             llenarDGVPrescripciones();
+        }
+
+        private static bool esSlotDuplicado(string nombreSlot)
+        {
+            return System.Text.RegularExpressions.Regex.IsMatch(nombreSlot, @" \(\d+\)$");
+        }
+
+        private void eliminarDuplicado(string nombreSlot)
+        {
+            foreach (IRestriccion restriccion in plantilla.listaRestricciones.Where(r => r.estructura.nombre == nombreSlot).ToList())
+            {
+                plantilla.listaRestricciones.Remove(restriccion);
+            }
+        }
+
+        private void BT_EliminarDuplicado_Click(object sender, RoutedEventArgs e)
+        {
+            if (!(DGV_Estructuras.SelectedItem is FilaEstructura filaActual) || !esSlotDuplicado(filaActual.NombreSlot))
+            {
+                MessageBox.Show("Seleccione primero la fila de la estructura duplicada a eliminar.");
+                return;
+            }
+            eliminarDuplicado(filaActual.NombreSlot);
+            llenarDGVEstructuras();
+            llenarDGVPrescripciones();
+            guardarDuplicados();
         }
 
         // Guarda en memoria (por plan) cuántas copias tiene cada slot duplicado, derivándolo de los
@@ -409,9 +432,9 @@ namespace ExploracionPlanes
             return MemoriaPlan.rutaArchivo(pathDuplicados, paciente, plan);
         }
 
-        private void CHB_OcultarNoAnalizadas_CheckedChanged(object sender, EventArgs e)
+        private void CHB_OcultarNoAnalizadas_CheckedChanged(object sender, RoutedEventArgs e)
         {
-            if (DGV_Análisis.Rows.Count > 0)
+            if (filasAnalisis.Count > 0)
             {
                 llenarDGVAnalisis();
             }
@@ -419,15 +442,7 @@ namespace ExploracionPlanes
 
         private bool estructurasSinAsociar()
         {
-            bool aux = false;
-            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
-            {
-                if (string.IsNullOrEmpty((string)fila.Cells[1].Value))
-                {
-                    aux = true;
-                }
-            }
-            return aux;
+            return filasEstructuras.Any(f => string.IsNullOrEmpty(f.StructureId));
         }
 
         private void llenarDGVAnalisis()
@@ -449,64 +464,40 @@ namespace ExploracionPlanes
             }
             string notaEQD2 = "Se analizaron evaluando EQD2: ";
             List<string> estructurasConEQD2 = new List<string>();
-            DGV_Análisis.ReadOnly = true;
-            DGV_Análisis.Rows.Clear();
+            filasAnalisis.Clear();
 
-            DGV_Análisis.Columns[5].Width = 10;
-            DGV_Análisis.Columns[7].DefaultCellStyle.Padding = new Padding(11);
-            //DGV_Análisis.ColumnCount = 4;
-            int j = 0;
             if (plantilla.tieneCondicionesTipo1())
             {
                 SeleccionarPTV seleccionarPTV = new SeleccionarPTV(Estructura.ptvs(planSeleccionado()));
                 seleccionarPTV.ShowDialog();
                 ptvCondicion = seleccionarPTV.ptv;
                 MessageBox.Show("PTV volumen: " + Math.Round(ptvCondicion.Volume, 1).ToString() + " [cm3]\nNumero de fracciones " + ((PlanSetup)planSeleccionado()).UniqueFractionation.NumberOfFractions.ToString());
-                this.Text += " volPTV: " + Math.Round(ptvCondicion.Volume, 1).ToString() + "cm3 " + ((PlanSetup)planSeleccionado()).UniqueFractionation.NumberOfFractions.ToString() + " fx";
+                Title += " volPTV: " + Math.Round(ptvCondicion.Volume, 1).ToString() + "cm3 " + ((PlanSetup)planSeleccionado()).UniqueFractionation.NumberOfFractions.ToString() + " fx";
             }
-            if (plantilla.tienePrioridades())
+            Col_Prioridad.Visibility = plantilla.tienePrioridades() ? Visibility.Visible : Visibility.Collapsed;
+
+            foreach (IRestriccion restriccion in plantilla.listaRestricciones)
             {
-                DGV_Análisis.Columns[1].Visible = true;
-            }
-            for (int i = 0; i < plantilla.listaRestricciones.Count; i++)
-            {
-                PlanningItem planRestriccion = null;
-                IRestriccion restriccion = plantilla.listaRestricciones[i];
-                if (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null)
-                {
-                    planRestriccion = planMod;
-                }
-                else
-                {
-                    planRestriccion = plan;
-                }
+                PlanningItem planRestriccion = (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null) ? planMod : plan;
 
                 if (restriccion.condicion == null || restriccion.condicion.CumpleCondicion(planSeleccionado(), ptvCondicion))
                 {
                     Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre);
-                    DGV_Análisis.Rows.Add();
-                    if (estructura == null && CHB_OcultarNoAnalizadas.Checked)
+                    var fila = new FilaAnalisis { Restriccion = restriccion };
+                    if (estructura == null && CHB_OcultarNoAnalizadas.IsChecked == true)
                     {
-                        DGV_Análisis.Rows[j].Visible = false;
+                        fila.Oculta = true;
                     }
-                    DGV_Análisis.Rows[j].Cells[0].Value = Estructura.nombreEnDiccionario(restriccion.estructura);
-                    DGV_Análisis.Rows[j].Cells[2].Value = restriccion.metrica();
+                    fila.Estructura = Estructura.nombreEnDiccionario(restriccion.estructura);
+                    fila.Metrica = restriccion.metrica();
                     if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
                     {
-                        DGV_Análisis.Rows[j].Cells[0].Value = "(" + Estructura.nombreEnDiccionario(restriccion.estructura) + ")";
-                        DGV_Análisis.Rows[j].Cells[2].Value = "(" + restriccion.metrica() + ")";
+                        fila.Estructura = "(" + Estructura.nombreEnDiccionario(restriccion.estructura) + ")";
+                        fila.Metrica = "(" + restriccion.metrica() + ")";
                     }
-                    string menorOmayor;
-                    if (restriccion.esMenorQue)
-                    {
-                        menorOmayor = "<";
-                    }
-                    else
-                    {
-                        menorOmayor = ">";
-                    }
+                    string menorOmayor = restriccion.esMenorQue ? "<" : ">";
                     string valorEsperadoString;
-                    if (Double.IsNaN(restriccion.valorEsperado))
+                    if (double.IsNaN(restriccion.valorEsperado))
                     {
                         valorEsperadoString = "Reportar";
                     }
@@ -514,28 +505,27 @@ namespace ExploracionPlanes
                     {
                         valorEsperadoString = menorOmayor + restriccion.valorEsperado + restriccion.unidadValor;
                     }
-                    
-                    if (!Double.IsNaN(restriccion.valorTolerado))
+                    if (!double.IsNaN(restriccion.valorTolerado))
                     {
                         valorEsperadoString += " (" + restriccion.valorTolerado + restriccion.unidadValor + ")";
                     }
-                    DGV_Análisis.Rows[j].Cells[5].Value = valorEsperadoString;
-                    DGV_Análisis.Rows[j].Cells[6].Value = restriccion.nota;
+                    fila.Esperado = valorEsperadoString;
+                    fila.Referencia = restriccion.nota;
                     if (estructura != null)
                     {
                         if (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null)
                         {
-                            DGV_Análisis.Rows[j].Cells[6].Value += " *";
+                            fila.Referencia += " *";
                         }
-                        DGV_Análisis.Rows[j].Cells[3].Value = Math.Round(estructura.Volume, 2).ToString();
-                        if (CHB_EvaluarConEQD2.Checked)
+                        fila.Volumen = Math.Round(estructura.Volume, 2).ToString();
+                        if (CHB_EvaluarConEQD2.IsChecked == true)
                         {
                             double alfaBeta = 3;
-                            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
+                            foreach (var filaEst in filasEstructuras)
                             {
-                                if (fila.Cells[1].Value != null && fila.Cells[1].Value.ToString() == estructura.Id)
+                                if (filaEst.StructureId == estructura.Id)
                                 {
-                                    alfaBeta = Convert.ToDouble(fila.Cells[2].Value);
+                                    alfaBeta = Metodos.validarYConvertirADouble(filaEst.AlfaBeta);
                                     break;
                                 }
                             }
@@ -558,52 +548,43 @@ namespace ExploracionPlanes
                         }
                         else
                         {
-                            DGV_Análisis.Rows[j].Cells[4].Value = restriccion.valorMedido + restriccion.unidadValor;
+                            fila.EnPlan = restriccion.valorMedido + restriccion.unidadValor;
                             if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
                             {
                                 IRestriccion restriccionCondicionante = plantilla.listaRestricciones.Where(r => r.etiqueta == restriccion.condicion.EtiquetaRestriccionAnidada).First();
-                                int filaCondicionante = plantilla.listaRestricciones.IndexOf(restriccionCondicionante);
-                                colorCeldasAnidadas(restriccionCondicionante, DGV_Análisis.Rows[filaCondicionante].Cells[4], restriccion, DGV_Análisis.Rows[j].Cells[4]);
+                                var filaCondicionante = filasAnalisis.FirstOrDefault(f => f.Restriccion == restriccionCondicionante);
+                                ColorearAnalisis.fondoAnidadasWpf(restriccionCondicionante, restriccion, out var fondoCondicionante, out var fondoCondicionada);
+                                if (filaCondicionante != null)
+                                {
+                                    filaCondicionante.FondoEnPlan = fondoCondicionante;
+                                }
+                                fila.FondoEnPlan = fondoCondicionada;
                             }
                             else
                             {
-                                colorCelda(DGV_Análisis.Rows[j].Cells[4], restriccion);
+                                fila.FondoEnPlan = ColorearAnalisis.fondoWpf(restriccion);
                             }
                         }
-                        if (restriccion.prioridad != null && restriccion.prioridad != "")
+                        if (!string.IsNullOrEmpty(restriccion.prioridad))
                         {
-                            DGV_Análisis.Rows[j].Cells[1].Value = restriccion.prioridad;
+                            fila.Prioridad = restriccion.prioridad;
                         }
                         if (restriccion.GetType() == typeof(RestriccionDosisMax))
                         {
-                            DataGridViewButtonCell bt = (DataGridViewButtonCell)DGV_Análisis.Rows[j].Cells[7];
-                            bt.FlatStyle = FlatStyle.System;
-                            bt.Style.BackColor = System.Drawing.Color.LightGray;
-                            bt.Style.ForeColor = System.Drawing.Color.Black;
-                            bt.Style.SelectionBackColor = System.Drawing.Color.LightGray;
-                            bt.Style.SelectionForeColor = System.Drawing.Color.Black;
-                            bt.Value = RestriccionDosisMax.volumenDosisMaxima.ToString();
-                            DGV_Análisis.Rows[j].Cells[7].Style.Padding = new Padding(0, 0, 0, 1);
+                            fila.EsDmax = true;
+                            fila.VolumenDmaxTexto = RestriccionDosisMax.volumenDosisMaxima.ToString();
                         }
-
                     }
-                    //MessageBox.Show(DGV_Análisis.Rows[j].Cells[5].Value.ToString());
-                    j++;
-                }
-                else
-                {
-
+                    filasAnalisis.Add(fila);
                 }
             }
-            DGV_Análisis.AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.AllCells;
-            DGV_Análisis.Columns[1].Width = 50;
-            if (CHB_EvaluarConEQD2.Checked)
+            if (CHB_EvaluarConEQD2.IsChecked == true)
             {
                 plantilla.nota += "\r\n" + notaEQD2;
             }
             if (plantilla.TieneRestriccionEnPlanMod())
             {
-                L_Advertencia.Visible = true;
+                L_Advertencia.Visibility = Visibility.Visible;
                 if (planMod != null)
                 {
                     L_Advertencia.Text = "* Restricciones evaluadas en " + planMod.Id;
@@ -613,23 +594,22 @@ namespace ExploracionPlanes
                 {
                     L_Advertencia.Text = "* Restricciones evaluadas en " + plan.Id;
                 }
-
             }
             else
             {
-                L_Advertencia.Visible = false;
+                L_Advertencia.Visibility = Visibility.Collapsed;
             }
-
+            BT_GuardarReporte.IsEnabled = filasAnalisis.Count > 0;
+            BT_Imprimir.IsEnabled = filasAnalisis.Count > 0;
         }
 
         private Structure estructuraCorrespondiente(string nombreEstructura)
         {
-            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
+            foreach (var fila in filasEstructuras)
             {
-                if (fila.Cells[0].Value.Equals(nombreEstructura))
+                if (fila.NombreSlot.Equals(nombreEstructura))
                 {
-                    string estructuraID = (string)(fila.Cells[1].Value);
-                    return Estructura.listaEstructuras(planSeleccionado()).Where(s => s.Id.Equals(estructuraID)).FirstOrDefault();
+                    return Estructura.listaEstructuras(planSeleccionado()).Where(s => s.Id.Equals(fila.StructureId)).FirstOrDefault();
                 }
             }
             return null;
@@ -637,15 +617,10 @@ namespace ExploracionPlanes
 
         private string infoPlan()
         {
-            string infoPlan = planSeleccionado().Id;
-            /*   if (planSeleccionado().ApprovalStatus == PlanSetupApprovalStatus.PlanningApproved || planSeleccionado().ApprovalStatus == PlanSetupApprovalStatus.TreatmentApproved)
-               {
-                   infoPlan += " Aprobado por: " + planSeleccionado().PlanningApprover;
-               }*/
-            return infoPlan;
+            return planSeleccionado().Id;
         }
 
-        private void BT_Analizar_Click(object sender, EventArgs e)
+        private void BT_Analizar_Click(object sender, RoutedEventArgs e)
         {
             aplicarPrescripciones();
             llenarDGVAnalisis();
@@ -654,28 +629,19 @@ namespace ExploracionPlanes
             guardarDuplicados();
             if (plantilla.nombre.Contains("SunRise"))
             {
-                DGV_Análisis.Columns[0].HeaderText = "Structure";
-                DGV_Análisis.Columns[1].HeaderText = "Priority";
-                DGV_Análisis.Columns[2].HeaderText = "Metric";
-                DGV_Análisis.Columns[4].HeaderText = "In plan";
-                DGV_Análisis.Columns[5].HeaderText = "Expected";
+                Col_Estructura.Header = "Structure";
+                Col_Prioridad.Header = "Priority";
+                Col_Metrica.Header = "Metric";
+                Col_EnPlan.Header = "In plan";
+                Col_Esperado.Header = "Expected";
             }
         }
 
-        private void colorCelda(DataGridViewCell celda, IRestriccion restriccion)
-        {
-            ColorearAnalisis.colorCelda(celda, restriccion);
-        }
-        private void colorCeldasAnidadas(IRestriccion restriccionCondicionante, DataGridViewCell celdaCondicionante, IRestriccion restriccionCondicionada, DataGridViewCell celdaCondicionada)
-        {
-            ColorearAnalisis.colorCeldasAnidadas(restriccionCondicionante, celdaCondicionante, restriccionCondicionada, celdaCondicionada);
-        }
-        private void BT_SeleccionarPlan_Click(object sender, EventArgs e)
+        private void BT_SeleccionarPlan_Click(object sender, RoutedEventArgs e)
         {
             try
             {
                 var plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planSeleccionado(), paciente);
-
                 aplicarDuplicadosGuardados();
                 llenarDGVEstructuras();
                 planSeleccionado();
@@ -687,11 +653,10 @@ namespace ExploracionPlanes
             }
         }
 
-        private void Form2_FormClosing(object sender, FormClosingEventArgs e)
+        private void Form2_Closing(object sender, CancelEventArgs e)
         {
             if (hayContext)
             {
-
             }
             else if (paciente != null)
             {
@@ -703,82 +668,61 @@ namespace ExploracionPlanes
             {
                 app.Dispose();
             }
-
         }
 
-
-
-        private void TB_ID_TextChanged(object sender, EventArgs e)
+        private void TB_ID_TextChanged(object sender, TextChangedEventArgs e)
         {
-            Metodos.habilitarBoton(!string.IsNullOrEmpty(TB_ID.Text), BT_AbrirPaciente);
+            BT_AbrirPaciente.IsEnabled = !string.IsNullOrEmpty(TB_ID.Text);
         }
 
-
-        private void LB_Planes_SelectedIndexChanged(object sender, EventArgs e)
+        private void LB_Planes_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
-            Metodos.habilitarBoton(LB_Planes.SelectedItems.Count == 1, BT_SeleccionarPlan);
+            BT_SeleccionarPlan.IsEnabled = LB_Planes.SelectedItems.Count == 1;
+            actualizarBotonAnalizar();
         }
 
-        private void DGV_Análisis_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
+        private void actualizarBotonAnalizar()
         {
-            Metodos.habilitarBoton(DGV_Análisis.Rows.Count > 0, BT_GuardarReporte);
-            Metodos.habilitarBoton(DGV_Análisis.Rows.Count > 0, BT_Imprimir);
-        }
-
-        private void DGV_Estructuras_RowsAdded(object sender, DataGridViewRowsAddedEventArgs e)
-        {
-            Metodos.habilitarBoton(LB_Planes.SelectedItems.Count == 1 && DGV_Estructuras.RowCount > 0, BT_Analizar);
+            BT_Analizar.IsEnabled = LB_Planes.SelectedItems.Count == 1 && filasEstructuras.Count > 0;
         }
 
         private void prepararControlesContext()
         {
-            label4.Enabled = false;
-            TB_ID.Enabled = false;
-            BT_AbrirPaciente.Enabled = false;
-            label2.Enabled = false;
-            LB_Cursos.Enabled = false;
-            Label3.Enabled = false;
-            LB_Planes.Enabled = false;
-            BT_SeleccionarPlan.Enabled = false;
+            label4.IsEnabled = false;
+            TB_ID.IsEnabled = false;
+            BT_AbrirPaciente.IsEnabled = false;
+            label2.IsEnabled = false;
+            LB_Cursos.IsEnabled = false;
+            Label3.IsEnabled = false;
+            LB_Planes.IsEnabled = false;
+            BT_SeleccionarPlan.IsEnabled = false;
         }
 
-        private void DGV_Análisis_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        private void BT_VolumenDmax_Click(object sender, RoutedEventArgs e)
         {
-            var senderGrid = (DataGridView)sender;
+            var fila = (FilaAnalisis)((Button)sender).DataContext;
+            var restriccion = (RestriccionDosisMax)fila.Restriccion;
+            FormTB formTb = new FormTB(fila.VolumenDmaxTexto, true);
+            formTb.Title = "Volumen dosis maxima";
+            formTb.L_Texto.Text = "Definir el tamaño del elemento de volumen para el \ncálculo de la dosis máxima [cm3]";
+            formTb.ShowDialog();
 
-            if (senderGrid.Columns[e.ColumnIndex] is DataGridViewButtonColumn &&
-                e.RowIndex >= 0)
+            if (formTb.DialogResult == true)
             {
-                FormTB formTb = new FormTB((senderGrid.Rows[e.RowIndex].Cells[e.ColumnIndex]).Value.ToString(), true);
-                formTb.Title = "Volumen dosis maxima";
-                formTb.L_Texto.Text = "Definir el tamaño del elemento de volumen para el \ncálculo de la dosis máxima [cm3]";
-                formTb.ShowDialog();
-
-                if (formTb.DialogResult == true)
-                {
-                    ((RestriccionDosisMax)(plantilla.listaRestricciones[e.RowIndex])).analizarPlanEstructura(planSeleccionado(), estructuraCorrespondiente(plantilla.listaRestricciones[e.RowIndex].estructura.nombre), Metodos.validarYConvertirADouble(formTb.salida));
-                    DGV_Análisis.Rows[e.RowIndex].Cells[2].Value = plantilla.listaRestricciones[e.RowIndex].valorMedido + plantilla.listaRestricciones[e.RowIndex].unidadValor;
-                    colorCelda(DGV_Análisis.Rows[e.RowIndex].Cells[2], plantilla.listaRestricciones[e.RowIndex]);
-                    (senderGrid.Rows[e.RowIndex].Cells[e.ColumnIndex]).Value = formTb.salida;
-                }
+                Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre);
+                restriccion.analizarPlanEstructura(planSeleccionado(), estructura, Metodos.validarYConvertirADouble(formTb.salida));
+                fila.Metrica = restriccion.valorMedido + restriccion.unidadValor;
+                fila.FondoMetrica = ColorearAnalisis.fondoWpf(restriccion);
+                fila.VolumenDmaxTexto = formTb.salida;
             }
         }
 
         private List<parEstructura> listaParesEstructuras()
         {
             List<parEstructura> lista = new List<parEstructura>();
-            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
+            foreach (var fila in filasEstructuras)
             {
-                parEstructura par = new parEstructura()
-                {
-                    estructuraNombre = fila.Cells[0].Value.ToString(),
-                };
-                if (fila.Cells[1].Value != null)
-                {
-                    par.structureID = fila.Cells[1].Value.ToString();
-                }
-
-                lista.Add(par);
+                lista.Add(new parEstructura() { estructuraNombre = fila.NombreSlot, structureID = fila.StructureId });
             }
             return lista;
         }
@@ -786,17 +730,13 @@ namespace ExploracionPlanes
         private List<prescripcion> listaPrescripcion()
         {
             List<prescripcion> lista = new List<prescripcion>();
-            foreach (DataGridViewRow fila in DGV_Prescripciones.Rows)
+            foreach (var fila in filasPrescripciones)
             {
-                prescripcion presc = new prescripcion()
+                var presc = new prescripcion() { estructura = fila.Estructura };
+                if (!string.IsNullOrEmpty(fila.Dosis))
                 {
-                    estructura = fila.Cells[0].Value.ToString(),
-                };
-                if (fila.Cells[1].Value != null)
-                {
-                    presc.dosis = Convert.ToDouble(fila.Cells[1].Value);
+                    presc.dosis = Metodos.validarYConvertirADouble(fila.Dosis);
                 }
-
                 lista.Add(presc);
             }
             return lista;
@@ -837,7 +777,6 @@ namespace ExploracionPlanes
                 MessageBox.Show("No se pudo guardar la memoria de prescripciones:\n" + exp.Message);
             }
         }
-
 
         public static List<parEstructura> leerArchivoParEstructura(string archivo)
         {
@@ -914,18 +853,49 @@ namespace ExploracionPlanes
         }
 
         #region Imprimir
+
+        private List<ColumnaReporte> columnasReporte()
+        {
+            var esSunRise = plantilla.nombre.Contains("SunRise");
+            return new List<ColumnaReporte>
+            {
+                new ColumnaReporte { Encabezado = esSunRise ? "Structure" : "Estructura", Ancho = 60 },
+                new ColumnaReporte { Encabezado = "Priority", Ancho = 50 },
+                new ColumnaReporte { Encabezado = esSunRise ? "Metric" : "Métrica", Ancho = 60 },
+                new ColumnaReporte { Encabezado = "Vol [cm3]", Ancho = 60 },
+                new ColumnaReporte { Encabezado = esSunRise ? "In plan" : "En Plan", Ancho = 70 },
+                new ColumnaReporte { Encabezado = esSunRise ? "Expected" : "Esperado", Ancho = 70 },
+                new ColumnaReporte { Encabezado = "Ref.", Ancho = 60 },
+            };
+        }
+
+        private static System.Drawing.Color colorDrawing(System.Windows.Media.Brush brush)
+        {
+            if (brush is System.Windows.Media.SolidColorBrush solido && solido.Color.A != 0)
+            {
+                var c = solido.Color;
+                return System.Drawing.Color.FromArgb(255, c.R, c.G, c.B);
+            }
+            return System.Drawing.Color.White;
+        }
+
+        private TablaReporte tablaReporte()
+        {
+            var tabla = new TablaReporte { Columnas = columnasReporte() };
+            foreach (var fila in filasAnalisis.Where(f => !f.Oculta))
+            {
+                var filaReporte = new FilaReporte();
+                filaReporte.Valores.AddRange(new[] { fila.Estructura, fila.Prioridad, fila.Metrica, fila.Volumen, fila.EnPlan, fila.Esperado, fila.Referencia });
+                filaReporte.Fondos.AddRange(new[] { colorDrawing(null), colorDrawing(null), colorDrawing(fila.FondoMetrica), colorDrawing(null), colorDrawing(fila.FondoEnPlan), colorDrawing(null), colorDrawing(null) });
+                tabla.Filas.Add(filaReporte);
+            }
+            return tabla;
+        }
+
         private Document reporte()
         {
-            string usuarioNombre;
+            string usuarioNombre = hayContext ? usuario.Name : app.CurrentUser.Name;
             double prescripcion = 0;
-            if (hayContext)
-            {
-                usuarioNombre = usuario.Name;
-            }
-            else
-            {
-                usuarioNombre = app.CurrentUser.Name;
-            }
             if (planSeleccionado() is PlanSetup)
             {
                 prescripcion = ((PlanSetup)planSeleccionado()).TotalPrescribedDose.Dose / 100;
@@ -937,10 +907,10 @@ namespace ExploracionPlanes
                     prescripcion += plan.TotalPrescribedDose.Dose / 100;
                 }
             }
-
-            return Reporte.crearReporte(paciente.LastName, paciente.FirstName, paciente.Id, equipo(), plantilla.nombre, plantilla.nota, usuarioNombre, Convert.ToString(infoPlan()), Convert.ToString(prescripcion), DGV_Análisis);
+            return Reporte.crearReporte(paciente.LastName, paciente.FirstName, paciente.Id, equipo(), plantilla.nombre, plantilla.nota, usuarioNombre, Convert.ToString(infoPlan()), Convert.ToString(prescripcion), tablaReporte());
         }
-        private void BT_GuardarReporte_Click(object sender, EventArgs e)
+
+        private void BT_GuardarReporte_Click(object sender, RoutedEventArgs e)
         {
             Reporte.exportarAPdf(paciente.LastName, paciente.FirstName, paciente.Id, planSeleccionado().Id, plantilla.nombre, reporte());
             guardarPlantillaComoJson();
@@ -967,74 +937,56 @@ namespace ExploracionPlanes
                 Directory.CreateDirectory(pathReportesJson);
             }
             string path = IO.GetUniqueFilename(pathReportesJson, nombre, "txt");
-
             IO.writeObjectAsJson(path, plantilla);
         }
 
-        private void BT_Imprimir_Click(object sender, EventArgs e)
+        private void BT_Imprimir_Click(object sender, RoutedEventArgs e)
         {
-            MigraDoc.Rendering.Printing.MigraDocPrintDocument pd = new MigraDoc.Rendering.Printing.MigraDocPrintDocument();
+            var pd = new MigraDoc.Rendering.Printing.MigraDocPrintDocument();
             var rendered = new DocumentRenderer(reporte());
             rendered.PrepareDocument();
             pd.Renderer = rendered;
-            if (printDialog1.ShowDialog() == DialogResult.OK)
+            var printDialog = new System.Windows.Forms.PrintDialog();
+            if (printDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
             {
-                pd.PrinterSettings = printDialog1.PrinterSettings;
+                pd.PrinterSettings = printDialog.PrinterSettings;
                 pd.Print();
             }
-
         }
-
-
 
         #endregion
 
-        private void DGV_Prescripciones_CellContentClick(object sender, DataGridViewCellEventArgs e)
+        public void CHB_EvaluarConEQD2_CheckedChanged(object sender, RoutedEventArgs e)
         {
-
-        }
-
-        public void CHB_EvaluarConEQD2_CheckedChanged(object sender, EventArgs e)
-        {
-            if (CHB_EvaluarConEQD2.Checked)
+            if (CHB_EvaluarConEQD2.IsChecked == true)
             {
                 if (planSeleccionado() is PlanSum)
                 {
                     MessageBox.Show("No funciona para planes suma");
-                    CHB_EvaluarConEQD2.Checked = false;
+                    CHB_EvaluarConEQD2.IsChecked = false;
                 }
                 else if (((PlanSetup)planSeleccionado()).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200)
                 {
                     MessageBox.Show("La dosis día es de 200cGy");
-                    CHB_EvaluarConEQD2.Checked = false;
+                    CHB_EvaluarConEQD2.IsChecked = false;
                 }
                 else
                 {
-                    DataGridViewTextBoxColumn columna = new DataGridViewTextBoxColumn();
-                    columna.Width = 55;
-                    columna.HeaderText = "α/β";
-                    DGV_Estructuras.Columns.Add(columna);
-                    //DGV_Estructuras.Columns[2].Visible = true;
-                    DGV_Estructuras.Width = 314;
+                    Col_AlfaBeta.Visibility = Visibility.Visible;
                     cargarAlfaBetaDGVEstructuras();
                 }
             }
             else
             {
-                if (DGV_Estructuras.Columns.Count == 3)
-                {
-                    DGV_Estructuras.Columns.RemoveAt(2);
-                    //DGV_Estructuras.Columns[2].Visible = false;
-                    DGV_Estructuras.Width = 254;
-                }
+                Col_AlfaBeta.Visibility = Visibility.Collapsed;
             }
         }
 
         public void cargarAlfaBetaDGVEstructuras()
         {
-            foreach (DataGridViewRow fila in DGV_Estructuras.Rows)
+            foreach (var fila in filasEstructuras)
             {
-                fila.Cells[2].Value = Estructura.AlfaBeta(fila.Cells[0].Value.ToString());
+                fila.AlfaBeta = Estructura.AlfaBeta(fila.NombreSlot).ToString();
             }
         }
 
@@ -1081,13 +1033,5 @@ namespace ExploracionPlanes
             }
             return prescripcion;
         }
-
-
-
-        /*public static bool habilitarAdvertenciaPrescripcion(PlanSetup plan, Plantilla plantilla)
-        {
-            double prescripcion = plan.TotalPrescribedDose.Dose / 100;
-            if (plantilla.nombre.Contains("Mama") && plan.StructureSet.Structures.Any(s=>s.Id.Contains("PTV_Sb_Eval")) && plan.StructureSet.Structures.Any(s => s.Id.Contains("PTV_Sb_Eval")))
-        }*/
     }
 }

@@ -1,0 +1,203 @@
+<local:DialogoWpf x:Class="ExploracionPlanes.Form2"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ExploracionPlanes"
+        Title="Form2" Height="720" Width="1650"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13"
+        Closing="Form2_Closing">
+    <Window.Resources>
+        <BooleanToVisibilityConverter x:Key="BoolAVisibilidad" />
+        <Style x:Key="BotonPrimario" TargetType="Button">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+        </Style>
+        <Style x:Key="BotonSecundario" TargetType="Button" BasedOn="{StaticResource BotonPrimario}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1B2A4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#1B2A4A" />
+        </Style>
+        <Style TargetType="TextBlock" x:Key="Eyebrow">
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Margin" Value="0,0,0,4" />
+        </Style>
+        <Style TargetType="DataGridColumnHeader">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Padding" Value="6,4" />
+        </Style>
+        <Style TargetType="DataGridCell">
+            <Setter Property="Padding" Value="4,2" />
+            <Setter Property="BorderBrush" Value="#DDE1E8" />
+            <Setter Property="BorderThickness" Value="0,0,1,0" />
+        </Style>
+        <Style TargetType="DataGrid">
+            <Setter Property="GridLinesVisibility" Value="All" />
+            <Setter Property="HorizontalGridLinesBrush" Value="#DDE1E8" />
+            <Setter Property="VerticalGridLinesBrush" Value="#DDE1E8" />
+            <Setter Property="RowHeight" Value="26" />
+            <Setter Property="Background" Value="White" />
+            <Setter Property="AlternatingRowBackground" Value="#F7F8FA" />
+            <Setter Property="HeadersVisibility" Value="Column" />
+            <Setter Property="CanUserAddRows" Value="False" />
+            <Setter Property="CanUserDeleteRows" Value="False" />
+            <Setter Property="AutoGenerateColumns" Value="False" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="160" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="430" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="230" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+
+        <!-- Encabezados de columna -->
+        <TextBlock x:Name="label4" Grid.Row="0" Grid.Column="0" Text="1. Elegir paciente" Style="{StaticResource Eyebrow}" />
+        <TextBlock Grid.Row="0" Grid.Column="2" Text="4. Asociar estructuras" Style="{StaticResource Eyebrow}" />
+        <TextBlock Grid.Row="0" Grid.Column="4" Text="5. Ajustar prescripciones" Style="{StaticResource Eyebrow}" />
+        <TextBlock Grid.Row="0" Grid.Column="6" Text="6. Analizar" Style="{StaticResource Eyebrow}" />
+
+        <!-- Columna 1: paciente / curso / plan -->
+        <Grid Grid.Row="1" Grid.Column="0" VerticalAlignment="Top">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="90" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="90" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <TextBlock Grid.Row="0" Text="ID:" x:Name="label1" />
+            <TextBox x:Name="TB_ID" Grid.Row="1" Padding="4" TextChanged="TB_ID_TextChanged" />
+            <Button x:Name="BT_AbrirPaciente" Grid.Row="2" Content="Abrir paciente" Style="{StaticResource BotonSecundario}" Margin="0,6,0,0" IsEnabled="False" Click="BT_AbrirPaciente_Click" />
+            <TextBlock x:Name="L_NombrePaciente" Grid.Row="4" TextWrapping="Wrap" Visibility="Collapsed" FontWeight="SemiBold" Margin="0,6,0,0" />
+            <TextBlock x:Name="label2" Grid.Row="5" Text="2. Seleccionar curso" Style="{StaticResource Eyebrow}" Margin="0,10,0,4" />
+            <ListBox x:Name="LB_Cursos" Grid.Row="6" SelectionChanged="LB_Cursos_SelectedIndexChanged" />
+            <TextBlock x:Name="Label3" Grid.Row="8" Text="3. Seleccionar plan" Style="{StaticResource Eyebrow}" Margin="0,10,0,4" />
+            <ListBox x:Name="LB_Planes" Grid.Row="9" SelectionChanged="LB_Planes_SelectedIndexChanged" />
+            <Button x:Name="BT_SeleccionarPlan" Grid.Row="11" Content="Seleccionar plan" Style="{StaticResource BotonSecundario}" Margin="0,10,0,0" IsEnabled="False" Click="BT_SeleccionarPlan_Click" />
+        </Grid>
+
+        <!-- Columna 2: estructuras -->
+        <Grid Grid.Row="1" Grid.Column="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="6" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <StackPanel Grid.Row="0" Orientation="Horizontal">
+                <Button x:Name="BT_DuplicarEstructura" Content="Duplicar estructura" Style="{StaticResource BotonSecundario}" Margin="0,0,8,0" Click="BT_DuplicarEstructura_Click" />
+                <Button x:Name="BT_EliminarDuplicado" Content="Eliminar duplicado" Style="{StaticResource BotonSecundario}" Click="BT_EliminarDuplicado_Click" />
+            </StackPanel>
+            <DataGrid x:Name="DGV_Estructuras" Grid.Row="2">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Plantilla" Binding="{Binding NombreSlot}" IsReadOnly="True" Width="Auto" />
+                    <DataGridTemplateColumn Header="Plan" Width="150">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <ComboBox ItemsSource="{Binding Opciones}" SelectedItem="{Binding StructureId, Mode=TwoWay}" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn x:Name="Col_AlfaBeta" Header="α/β" Binding="{Binding AlfaBeta}" Width="55" Visibility="Collapsed" />
+                </DataGrid.Columns>
+            </DataGrid>
+            <CheckBox x:Name="CHB_EvaluarConEQD2" Grid.Row="4" Content="Evaluar EQD2" Margin="0,8,0,0" Checked="CHB_EvaluarConEQD2_CheckedChanged" Unchecked="CHB_EvaluarConEQD2_CheckedChanged" />
+        </Grid>
+
+        <!-- Columna 3: prescripciones -->
+        <Grid Grid.Row="1" Grid.Column="4" VerticalAlignment="Top">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="220" />
+            </Grid.RowDefinitions>
+            <DataGrid x:Name="DGV_Prescripciones" Grid.Row="0">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Estructura" Binding="{Binding Estructura}" IsReadOnly="True" Width="Auto" />
+                    <DataGridTextColumn Header="Prescripción (Gy)" Binding="{Binding Dosis}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+
+        <!-- Columna 4: análisis -->
+        <Grid Grid.Row="1" Grid.Column="6">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="8" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+            <DataGrid x:Name="DGV_Análisis" Grid.Row="0" IsReadOnly="True">
+                <DataGrid.RowStyle>
+                    <Style TargetType="DataGridRow">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding Oculta}" Value="True">
+                                <Setter Property="Visibility" Value="Collapsed" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </DataGrid.RowStyle>
+                <DataGrid.Columns>
+                    <DataGridTextColumn x:Name="Col_Estructura" Header="Estructura" Binding="{Binding Estructura}" Width="Auto" />
+                    <DataGridTextColumn x:Name="Col_Prioridad" Header="Prioridad" Binding="{Binding Prioridad}" Width="Auto" Visibility="Collapsed" />
+                    <DataGridTemplateColumn x:Name="Col_Metrica" Header="Métrica" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Metrica}" Background="{Binding FondoMetrica}" Padding="4,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn Header="Vol [cm3]" Binding="{Binding Volumen}" Width="Auto" />
+                    <DataGridTemplateColumn x:Name="Col_EnPlan" Header="En Plan" Width="Auto">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding EnPlan}" Background="{Binding FondoEnPlan}" Padding="4,2" VerticalAlignment="Stretch" HorizontalAlignment="Stretch" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                    <DataGridTextColumn x:Name="Col_Esperado" Header="Esperado" Binding="{Binding Esperado}" Width="Auto" />
+                    <DataGridTextColumn Header="Ref." Binding="{Binding Referencia}" Width="Auto" />
+                    <DataGridTemplateColumn Header="" Width="55">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate>
+                                <Button Content="{Binding VolumenDmaxTexto}" Visibility="{Binding EsDmax, Converter={StaticResource BoolAVisibilidad}}"
+                                        Padding="2" Click="BT_VolumenDmax_Click" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
+                </DataGrid.Columns>
+            </DataGrid>
+            <StackPanel Grid.Row="2" Orientation="Horizontal">
+                <CheckBox x:Name="CHB_OcultarNoAnalizadas" Content="Ocultar no analizadas" IsChecked="True" Margin="0,0,20,0" Checked="CHB_OcultarNoAnalizadas_CheckedChanged" Unchecked="CHB_OcultarNoAnalizadas_CheckedChanged" />
+                <TextBlock x:Name="L_Advertencia" Foreground="Red" FontWeight="Bold" Visibility="Collapsed" TextWrapping="Wrap" />
+            </StackPanel>
+        </Grid>
+
+        <!-- Fila inferior: botones de acción -->
+        <StackPanel Grid.Row="2" Grid.Column="6" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,12,0,0">
+            <Button x:Name="BT_Analizar" Content="Analizar" Style="{StaticResource BotonPrimario}" IsEnabled="False" Margin="0,0,10,0" Click="BT_Analizar_Click" />
+            <Button x:Name="BT_GuardarReporte" Content="Guardar Reporte" Style="{StaticResource BotonSecundario}" IsEnabled="False" Margin="0,0,10,0" Click="BT_GuardarReporte_Click" />
+            <Button x:Name="BT_Imprimir" Content="Imprimir" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Imprimir_Click" />
+        </StackPanel>
+    </Grid>
+</local:DialogoWpf>

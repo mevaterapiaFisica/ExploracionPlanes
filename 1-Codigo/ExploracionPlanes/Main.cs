@@ -195,10 +195,6 @@ namespace ExploracionPlanes
             }
             aplicarPlantilla = new Form2(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, planMod);
             aplicarPlantilla.ShowDialog();
-            if (hayContext)
-            {
-                aplicarPlantilla.Dispose();
-            }
         }
 
         private void BT_CompararPlanes_Click(object sender, EventArgs e)

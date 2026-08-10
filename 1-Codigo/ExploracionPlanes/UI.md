@@ -344,6 +344,72 @@ ni por `PlantillaBlanco` ni por `Form1_prioridades`, que no analizan un plan rea
 lógica de actualización en vivo de celdas. `Form1_ext` además usa `editarGrupo(DataGridView, ...)`,
 sin tocar hasta ahora.
 
+### Form1_ext: DIFERIDO a pedido del usuario
+
+Está atado a la tarea ya documentada en §8 de `ResumenProyecto.md` ("PENDIENTE: Importar constraints
+RC/SBRT de tabla") — el editor de condiciones (`LB_Condiciones`/`listaCondicionesNumFracc`/
+`listaCondicionesVolPTV`) probablemente se reescribe cuando se resuelva esa importación. Migrarlo
+ahora sería trabajo descartable. Además su `DGV_restricciones` es una matriz 2 filas (Ópt/Tol) × N
+columnas dinámicas (una por condición) — no el patrón fila-por-item de `FilaAnalisis`, necesitaría
+su propio diseño (probablemente pares de `TextBox` en vez de un `DataGrid`).
+
+### Form2: COMPLETADO
+
+Las 3 grillas migradas a `DataGrid` WPF:
+- `DGV_Estructuras` → `FilaEstructura` (`ObservableCollection`), con un `DataGridTemplateColumn` de
+  `ComboBox` por fila — cada fila tiene su propia lista de opciones ordenadas por parecido
+  (Damerau-Levenshtein), a diferencia de una columna de combo compartida. Columna α/β con
+  visibilidad togglable por código (mismo patrón imperativo que el `Columns.Add/RemoveAt` original).
+- `DGV_Prescripciones` → `FilaPrescripcion`, dosis como `string` editable (antes `double` en la
+  celda) — se parsea con `Metodos.validarYConvertirADouble` al leer, mismo idioma que el resto de
+  la app.
+- `DGV_Análisis` → `FilaAnalisis` extendido con `FondoEnPlan`/`FondoMetrica` (`Brush`, coloreado
+  pass/fail vía nuevos overloads WPF en `ColorearAnalisis.cs`), `Oculta` (reemplaza
+  `Rows[j].Visible=false` — fila se agrega igual pero un `RowStyle` con `DataTrigger` la colapsa) y
+  `Restriccion` (referencia directa al objeto real).
+
+**Mejora incidental** (no bug fix pedido, consecuencia natural de bindear por ítem en vez de por
+índice): el original indexaba `plantilla.listaRestricciones[e.RowIndex]` en el click del botón Dmax
+y `DGV_Análisis.Rows[filaCondicionante]` para el coloreado anidado — ambos se desalinean si una
+restricción anterior no cumple condición y no llega a agregarse a la grilla (bug latente
+preexistente, nunca disparado en producción pero real). La versión WPF guarda la referencia real
+(`FilaAnalisis.Restriccion`) y busca por objeto (`FirstOrDefault`), inmune a ese desalineamiento.
+
+**Bug preexistente preservado a propósito, no corregido**: al editar el volumen de Dmax por botón,
+el código original pinta la celda "Métrica" (`Cells[2]`) en vez de "En Plan" (`Cells[4]`) — se
+replicó igual (`FilaAnalisis.FondoMetrica`) en vez de "corregirlo" a lo que probablemente se quiso
+decir, para no cambiar comportamiento observable sin que se pida.
+
+**Overload nuevo en `Reporte.cs`**: `Reporte.crearReporte(..., TablaReporte)` ya lo tenía
+`PlantillaBlanco`; Form2 lo reusa igual. `Form2_DosPlanes` sigue en el overload viejo
+(`DataGridView`) hasta que se migre.
+
+**Bugs reales encontrados en la ronda de screenshots del usuario** (no solo estéticos):
+1. Combo de matcheo abría el desplegable saltando al final de la lista — la opción vacía `""` se
+   agregaba al final de `Opciones`; como las filas sin matchear tienen `StructureId=""` seleccionado,
+   WPF centra el scroll del popup en el item seleccionado (al final). Fix: `""` va primero.
+2. "Duplicar estructura" usaba `DataGrid.CurrentCell` para saber la fila elegida — no siempre se
+   actualiza con un click simple en una celda con `ComboBox` embebido. Fix: `DataGrid.SelectedItem`.
+3. Faltaba forma de deshacer una duplicación — se agregó botón "Eliminar duplicado" (funcionalidad
+   nueva, no existía en el original, pedida explícitamente por el usuario).
+4. **Crash al cerrar/reabrir un paciente distinto**: `cursoSeleccionado()` caía a un campo `curso`
+   que nunca se asigna (bug preexistente en el original también, pero inofensivo ahí) — en WPF,
+   `SelectionChanged` se dispara de forma más confiable al limpiar `Items`, así que el fallback a
+   `null` se pisaba siempre. Fix real: leer `LB_Cursos.SelectedItem` directo. Mismo bug y mismo fix
+   aplicado a `ImportarNombresEstructuras` (Fase 1), que tenía el mismo patrón.
+5. **Crash "Accessing disposed object" al reabrir paciente**: `abrirPaciente()` cierra (dispose) el
+   paciente anterior *antes* de que `LB_Cursos.Items.Clear()` limpiara la lista — el `Clear()`
+   disparaba `SelectionChanged` sobre un `Course` ya disposed. Fix: limpiar `LB_Cursos`/`LB_Planes`
+   **antes** de llamar `abrirPaciente()`, no después. Mismo fix en `ImportarNombresEstructuras`.
+6. Al cambiar de curso seleccionado no recargaban los planes, y al abrir otro paciente quedaban los
+   planes del anterior — mismo root cause que el punto 4 (el fallback a `curso` nulo) más el orden
+   de `Items.Clear()` del punto 5; se resolvió con los mismos dos fixes.
+
+**Pendiente de ajuste fino de UI (no bloqueante, a pedido del usuario se deja para después)**: en la
+pantalla real con datos, tanto el panel de "Asociar estructuras" como el de "Analizar" quedan con
+espacio sobrante a la derecha (las columnas con `Width="Auto"` no llegan a ocupar todo el ancho
+asignado). Ajustar cuando se retome trabajo visual fino sobre Form2.
+
 Runtime: WPF se hace sobre .NET Framework 4.5.1 primero (no toca ESAPI por `HintPath` ni
 PDFsharp/MigraDoc-GDI). Migrar a .NET moderno (6/8) queda como paso separado y posterior, evaluado
 aparte cuando corresponda.

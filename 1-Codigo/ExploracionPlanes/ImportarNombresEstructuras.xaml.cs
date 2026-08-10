@@ -123,9 +123,13 @@ namespace ExploracionPlanes
 
         private void BT_AbrirPaciente_Click(object sender, RoutedEventArgs e)
         {
+            // Limpiar ANTES de abrirPaciente(): ese método cierra el paciente anterior (dispose de
+            // sus Course), y si la lista todavía los referencia en ese momento, el Clear() de más
+            // abajo dispararía SelectionChanged apuntando a un Course ya disposed -> crash.
+            LB_Cursos.Items.Clear();
+            LB_Planes.Items.Clear();
             if (abrirPaciente(TB_ID.Text))
             {
-                LB_Cursos.Items.Clear();
                 foreach (Course curso in listaCursos(paciente))
                 {
                     LB_Cursos.Items.Add(curso);
@@ -140,7 +144,12 @@ namespace ExploracionPlanes
         private void LB_Cursos_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             LB_Planes.Items.Clear();
-            foreach (PlanningItem plan in listaPlanes(cursoSeleccionado()))
+            Course cursoElegido = LB_Cursos.SelectedItem as Course;
+            if (cursoElegido == null)
+            {
+                return;
+            }
+            foreach (PlanningItem plan in listaPlanes(cursoElegido))
             {
                 LB_Planes.Items.Add(plan);
             }

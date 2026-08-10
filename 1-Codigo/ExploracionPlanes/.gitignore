@@ -2,3 +2,5 @@ Thumbs.db
 .vscode/
 bin/
 obj/
+ExploracionPlanes.exe_*.txt
+*.dmp

@@ -214,7 +214,10 @@
     <Compile Include="Condicion.cs" />
     <Compile Include="DialogoWpf.cs" />
     <Compile Include="DatosEdicionRestriccion.cs" />
+    <Compile Include="ObservableBase.cs" />
     <Compile Include="FilaAnalisis.cs" />
+    <Compile Include="FilaEstructura.cs" />
+    <Compile Include="FilaPrescripcion.cs" />
     <Compile Include="Configuracion.cs" />
     <Compile Include="DesdeCSV.cs" />
     <Compile Include="Diccionario.cs" />
@@ -307,11 +310,12 @@
     <Compile Include="Form3.Designer.cs">
       <DependentUpon>Form3.cs</DependentUpon>
     </Compile>
-    <Compile Include="Form2.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form2.Designer.cs">
-      <DependentUpon>Form2.cs</DependentUpon>
+    <Page Include="Form2.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Form2.xaml.cs">
+      <DependentUpon>Form2.xaml</DependentUpon>
     </Compile>
     <Compile Include="IO.cs" />
     <Compile Include="IRestriccion.cs" />
@@ -340,9 +344,6 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Form3.resx">
       <DependentUpon>Form3.cs</DependentUpon>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form2.resx">
-      <DependentUpon>Form2.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Main.resx">
       <DependentUpon>Main.cs</DependentUpon>

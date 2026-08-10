@@ -12,9 +12,11 @@ namespace ExploracionPlanes
         private string metrica;
         private string volumen;
         private string enPlan;
+        private string enPlan2;
         private string esperado;
         private string referencia;
         private Brush fondoEnPlan = Brushes.Transparent;
+        private Brush fondoEnPlan2 = Brushes.Transparent;
         private Brush fondoMetrica = Brushes.Transparent;
         private bool oculta;
         private bool esDmax;
@@ -25,11 +27,14 @@ namespace ExploracionPlanes
         public string Metrica { get => metrica; set => Set(ref metrica, value); }
         public string Volumen { get => volumen; set => Set(ref volumen, value); }
         public string EnPlan { get => enPlan; set => Set(ref enPlan, value); }
+        // Solo usado por Form2_DosPlanes (comparación de dos planes).
+        public string EnPlan2 { get => enPlan2; set => Set(ref enPlan2, value); }
         public string Esperado { get => esperado; set => Set(ref esperado, value); }
         public string Referencia { get => referencia; set => Set(ref referencia, value); }
 
         // Solo usados por Form2/Form2_DosPlanes (análisis real de un plan); PlantillaBlanco no los toca.
         public Brush FondoEnPlan { get => fondoEnPlan; set => Set(ref fondoEnPlan, value); }
+        public Brush FondoEnPlan2 { get => fondoEnPlan2; set => Set(ref fondoEnPlan2, value); }
         // ponytail: preserva un bug preexistente — al editar el volumen de Dmax por botón, el
         // código original pinta la celda "Métrica" (Cells[2]) en vez de "En Plan" (Cells[4]).
         // No se corrige acá; ver Tests.md/UI.md.

@@ -1,0 +1,794 @@
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.ComponentModel;
+using System.Linq;
+using System.Windows;
+using System.Windows.Controls;
+using VMS.TPS.Common.Model.API;
+using VMS.TPS.Common.Model.Types;
+using MigraDoc.DocumentObjectModel;
+using MigraDoc.Rendering;
+
+namespace ExploracionPlanes
+{
+    public partial class Form2_DosPlanes : DialogoWpf
+    {
+        Patient paciente;
+        PlanningItem plan;
+        PlanningItem planMod;
+        PlanningItem plan2;
+        PlanningItem plan2Mod;
+        User usuario;
+        Plantilla plantilla;
+        bool hayContext = false;
+        Structure ptvCondicion;
+        VMS.TPS.Common.Model.API.Application app;
+
+        ObservableCollection<FilaEstructura> filasEstructuras = new ObservableCollection<FilaEstructura>();
+        ObservableCollection<FilaPrescripcion> filasPrescripciones = new ObservableCollection<FilaPrescripcion>();
+        ObservableCollection<FilaAnalisis> filasAnalisis = new ObservableCollection<FilaAnalisis>();
+
+        public Form2_DosPlanes(Plantilla _plantilla, bool _hayContext = false, Patient _pacienteContext = null, PlanningItem _planContext = null, User _usuarioContext = null, PlanningItem _segundoPlan = null, PlanningItem _planMod = null, PlanningItem _segundoPlanMod = null)
+        {
+            InitializeComponent();
+            DGV_Estructuras.ItemsSource = filasEstructuras;
+            DGV_Prescripciones.ItemsSource = filasPrescripciones;
+            DGV_Analisis.ItemsSource = filasAnalisis;
+
+            plantilla = _plantilla;
+            Title = plantilla.nombre;
+            hayContext = _hayContext;
+            if (_hayContext)
+            {
+                paciente = _pacienteContext;
+                plan = _planContext;
+                plan2 = _segundoPlan;
+                planMod = _planMod;
+                plan2Mod = _segundoPlanMod;
+                usuario = _usuarioContext;
+                prepararControlesContext();
+                llenarDGVEstructuras();
+                llenarDGVPrescripciones();
+                BT_Analizar.IsEnabled = true;
+
+                L_NombrePaciente.Text = paciente.LastName + ", " + paciente.FirstName;
+                L_NombrePaciente.Visibility = Visibility.Visible;
+                Title += " - " + paciente.LastName + ", " + paciente.FirstName;
+            }
+            else
+            {
+                try
+                {
+                    app = VMS.TPS.Common.Model.API.Application.CreateApplication(null, null);
+                }
+                catch (Exception)
+                {
+                    MessageBox.Show("No se puede acceder a Eclipse.\n Compruebe que está en una PC con acceso al TPS");
+                }
+            }
+        }
+
+        public bool abrirPaciente(string ID)
+        {
+            if (paciente != null)
+            {
+                cerrarPaciente();
+            }
+            if (app.PatientSummaries.Any(p => p.Id == ID))
+            {
+                paciente = app.OpenPatientById(ID);
+                L_NombrePaciente.Text = paciente.LastName + ", " + paciente.FirstName;
+                L_NombrePaciente.Visibility = Visibility.Visible;
+                Title += " - " + paciente.LastName + ", " + paciente.FirstName;
+                return true;
+            }
+            else
+            {
+                MessageBox.Show("El paciente no existe");
+                L_NombrePaciente.Visibility = Visibility.Collapsed;
+                return false;
+            }
+        }
+
+        public void cerrarPaciente()
+        {
+            app.ClosePatient();
+        }
+
+        public Course abrirCurso(Patient paciente, string nombreCurso)
+        {
+            return paciente.Courses.Where(c => c.Id == nombreCurso).FirstOrDefault();
+        }
+
+        public PlanningItem abrirPlan(Course curso, string nombrePlan)
+        {
+            return curso.PlanSetups.Where(p => p.Id == nombrePlan).FirstOrDefault();
+        }
+
+        public PlanningItem planSeleccionado()
+        {
+            if (hayContext)
+            {
+                return plan;
+            }
+            else if (LB_Planes.SelectedItems.Count == 2)
+            {
+                plan = (PlanningItem)LB_Planes.SelectedItems[0];
+                plan2 = (PlanningItem)LB_Planes.SelectedItems[1];
+                return plan;
+            }
+            else
+            {
+                return plan;
+            }
+        }
+
+        public string equipo()
+        {
+            string equipoID = "";
+            if (planSeleccionado() is PlanSetup)
+            {
+                equipoID = ((PlanSetup)planSeleccionado()).Beams.First().TreatmentUnit.Id;
+            }
+            else if (planSeleccionado() is PlanSum)
+            {
+                equipoID = ((PlanSum)planSeleccionado()).PlanSetups.First().Beams.First().TreatmentUnit.Id;
+            }
+            return Equipos.diccionario()[equipoID];
+        }
+
+        public List<Course> listaCursos(Patient paciente)
+        {
+            return paciente.Courses.ToList<Course>();
+        }
+
+        public List<PlanningItem> listaPlanes(Course curso)
+        {
+            List<PlanningItem> lista = new List<PlanningItem>();
+            foreach (PlanSetup planSetup in curso.PlanSetups)
+            {
+                lista.Add(planSetup);
+            }
+            foreach (PlanSum planSum in curso.PlanSums)
+            {
+                lista.Add(planSum);
+            }
+            return lista;
+        }
+
+        private void BT_AbrirPaciente_Click(object sender, RoutedEventArgs e)
+        {
+            // Limpiar ANTES de abrirPaciente(): ese método cierra el paciente anterior (dispose de
+            // sus Course), y si la lista todavía los referencia en ese momento, el Clear() de más
+            // abajo dispararía SelectionChanged apuntando a un Course ya disposed -> crash.
+            LB_Cursos.Items.Clear();
+            LB_Planes.Items.Clear();
+            if (abrirPaciente(TB_ID.Text))
+            {
+                foreach (Course curso in listaCursos(paciente))
+                {
+                    LB_Cursos.Items.Add(curso);
+                }
+                if (LB_Cursos.Items.Count > 0)
+                {
+                    LB_Cursos.SelectedIndex = 0;
+                }
+            }
+        }
+
+        private void LB_Cursos_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
+        {
+            LB_Planes.Items.Clear();
+            Course cursoElegido = LB_Cursos.SelectedItem as Course;
+            if (cursoElegido == null)
+            {
+                return;
+            }
+            foreach (PlanningItem plan in listaPlanes(cursoElegido))
+            {
+                LB_Planes.Items.Add(plan);
+            }
+            if (LB_Planes.Items.Count > 0)
+            {
+                LB_Planes.SelectedIndex = 0;
+            }
+        }
+
+        private void llenarDGVEstructuras()
+        {
+            filasEstructuras.Clear();
+            var todasLasOpciones = new List<string> { "" };
+            todasLasOpciones.AddRange(Estructura.listaEstructurasID(Estructura.listaEstructuras(planSeleccionado())));
+            foreach (Estructura estructura in plantilla.estructuras())
+            {
+                var fila = new FilaEstructura { NombreSlot = estructura.nombre };
+                foreach (string opcion in todasLasOpciones)
+                {
+                    fila.Opciones.Add(opcion);
+                }
+                filasEstructuras.Add(fila);
+            }
+            asociarEstructuras();
+            actualizarBotonAnalizar();
+        }
+
+        private void llenarDGVPrescripciones()
+        {
+            filasPrescripciones.Clear();
+            double prescripcion = 0;
+            if (planSeleccionado() is PlanSetup)
+            {
+                prescripcion = ((PlanSetup)planSeleccionado()).TotalPrescribedDose.Dose / 100;
+            }
+            else
+            {
+                foreach (PlanSetup planS in ((PlanSum)planSeleccionado()).PlanSetups)
+                {
+                    prescripcion += planS.TotalPrescribedDose.Dose / 100;
+                }
+            }
+            foreach (Estructura estructura in plantilla.estructurasParaPrescribir())
+            {
+                filasPrescripciones.Add(new FilaPrescripcion
+                {
+                    Estructura = estructura.nombre,
+                    Dosis = Form2.prescripcionPredefinida(estructura, plantilla, Math.Round(prescripcion, 2), paciente, planSeleccionado()).ToString()
+                });
+            }
+        }
+
+        private void aplicarPrescripciones()
+        {
+            foreach (IRestriccion restriccion in plantilla.listaRestricciones)
+            {
+                if (restriccion.dosisEstaEnPorcentaje())
+                {
+                    foreach (var fila in filasPrescripciones)
+                    {
+                        if (restriccion.estructura.nombre.Equals(fila.Estructura))
+                        {
+                            restriccion.prescripcionEstructura = Metodos.validarYConvertirADouble(fila.Dosis);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        private void asociarEstructuras()
+        {
+            bool existeArchivoPar = File.Exists(Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
+            List<parEstructura> lista = existeArchivoPar
+                ? Form2.leerArchivoParEstructura(Form2.nombreArchivoParEstructura(paciente, planSeleccionado()))
+                : new List<parEstructura>();
+            for (int i = 0; i < filasEstructuras.Count; i++)
+            {
+                var fila = filasEstructuras[i];
+                Structure estructura = Estructura.asociarConLista(plantilla.estructuras()[i].nombresPosibles, Estructura.listaEstructuras(planSeleccionado()));
+                if (estructura != null)
+                {
+                    fila.StructureId = estructura.Id;
+                }
+                else if (existeArchivoPar)
+                {
+                    string structureID = Form2.structureDeEstructura(fila.NombreSlot, lista);
+                    fila.StructureId = fila.Opciones.Contains(structureID) ? structureID : "";
+                }
+                else
+                {
+                    fila.StructureId = "";
+                }
+            }
+        }
+
+        private bool estructurasSinAsociar()
+        {
+            return filasEstructuras.Any(f => string.IsNullOrEmpty(f.StructureId));
+        }
+
+        private void llenarDGVAnalisis()
+        {
+            if (plan is PlanSetup && ((PlanSetup)plan).Dose == null)
+            {
+                MessageBox.Show("El plan no está calculado");
+                return;
+            }
+            else if (plan is PlanSum && ((PlanSum)plan).Dose == null)
+            {
+                MessageBox.Show("El plan no está calculado");
+                return;
+            }
+            if (plan2 is PlanSetup && ((PlanSetup)plan2).Dose == null)
+            {
+                MessageBox.Show("El segundo plan no está calculado");
+                return;
+            }
+            else if (plan2 is PlanSum && ((PlanSum)plan2).Dose == null)
+            {
+                MessageBox.Show("El segundo plan no está calculado");
+                return;
+            }
+            filasAnalisis.Clear();
+            Col_EnPlan1.Header = planSeleccionado().Id;
+            Col_EnPlan2.Header = plan2.Id;
+            if (StructureSetUID(plan) != StructureSetUID(plan2))
+            {
+                MessageBox.Show("Los planes están calculados sobre diferentes Set de estructuras\nSe obtendrá información respetando el nombre de las estructuras");
+            }
+            Col_Prioridad.Visibility = plantilla.tienePrioridades() ? Visibility.Visible : Visibility.Collapsed;
+            if (plantilla.tieneCondicionesTipo1())
+            {
+                SeleccionarPTV seleccionarPTV = new SeleccionarPTV(Estructura.ptvs(plan));
+                seleccionarPTV.ShowDialog();
+                ptvCondicion = seleccionarPTV.ptv;
+            }
+            string notaEQD2 = "Se analizaron evaluando EQD2: ";
+            List<string> estructurasConEQD2 = new List<string>();
+            foreach (IRestriccion restriccion in plantilla.listaRestricciones)
+            {
+                if (restriccion.condicion != null && !restriccion.condicion.CumpleCondicion(plan, ptvCondicion))
+                {
+                    continue;
+                }
+                try
+                {
+                    analizarRestriccion(restriccion, estructurasConEQD2, ref notaEQD2);
+                }
+                catch (Exception ex)
+                {
+                    logError($"llenarDGVAnalisis - restriccion '{restriccion.etiqueta}' paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", ex);
+                    var filaError = filasAnalisis.FirstOrDefault(f => f.Restriccion == restriccion);
+                    if (filaError != null)
+                    {
+                        filaError.EnPlan = "ERROR";
+                        filaError.FondoEnPlan = System.Windows.Media.Brushes.Red;
+                    }
+                    MessageBox.Show("Error al analizar la restricción \"" + restriccion.etiqueta + "\":\n" + ex.Message + "\n\nSe registró el detalle en log.txt");
+                }
+            }
+            if (CHB_EvaluarConEQD2.IsChecked == true)
+            {
+                plantilla.nota += "\r\n" + notaEQD2;
+            }
+            if (plantilla.TieneRestriccionEnPlanMod())
+            {
+                L_Advertencia.Visibility = Visibility.Visible;
+                if (planMod != null)
+                {
+                    L_Advertencia.Text = "* Restricciones evaluadas en " + planMod.Id;
+                    plantilla.nota += "\r\n* Restricciones evaluadas en " + planMod.Id;
+                }
+                else
+                {
+                    L_Advertencia.Text = "* Restricciones evaluadas en " + plan.Id;
+                }
+
+                L_Advertencia2.Visibility = Visibility.Visible;
+                if (plan2Mod != null)
+                {
+                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2Mod.Id;
+                    plantilla.nota += "\r\n* Restricciones evaluadas en " + plan2Mod.Id;
+                }
+                else
+                {
+                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2.Id;
+                }
+            }
+            else
+            {
+                L_Advertencia.Visibility = Visibility.Collapsed;
+            }
+            BT_GuardarReporte.IsEnabled = filasAnalisis.Count > 0;
+            BT_Imprimir.IsEnabled = filasAnalisis.Count > 0;
+        }
+
+        private void analizarRestriccion(IRestriccion restriccion, List<string> estructurasConEQD2, ref string notaEQD2)
+        {
+            PlanningItem planRestriccion = (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null) ? planMod : plan;
+            Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
+
+            var fila = new FilaAnalisis { Restriccion = restriccion };
+            filasAnalisis.Add(fila);
+
+            fila.Estructura = Estructura.nombreEnDiccionario(restriccion.estructura);
+            fila.Metrica = restriccion.metrica();
+            if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
+            {
+                fila.Estructura = "(" + Estructura.nombreEnDiccionario(restriccion.estructura) + ")";
+                fila.Metrica = "(" + restriccion.metrica() + ")";
+            }
+            string menorOmayor = restriccion.esMenorQue ? "<" : ">";
+            string valorEsperadoString = menorOmayor + restriccion.valorEsperado + restriccion.unidadValor;
+            if (!double.IsNaN(restriccion.valorTolerado))
+            {
+                valorEsperadoString += " (" + restriccion.valorTolerado + restriccion.unidadValor + ")";
+            }
+            fila.Esperado = valorEsperadoString;
+            fila.Referencia = restriccion.nota;
+
+            if (estructura != null)
+            {
+                if (!string.IsNullOrEmpty(restriccion.planMod) && planMod != null)
+                {
+                    fila.Referencia += " *";
+                }
+                fila.Volumen = Math.Round(estructura.Volume, 2).ToString();
+                double alfaBeta = 3;
+                if (CHB_EvaluarConEQD2.IsChecked == true)
+                {
+                    alfaBeta = alfaBetaDeEstructura(estructura.Id);
+                    int numeroFraccionesPlan1 = (int)((PlanSetup)plan).UniqueFractionation.NumberOfFractions;
+                    restriccion.analizarPlanEstructura(planRestriccion, estructura, alfaBeta, numeroFraccionesPlan1);
+                    if (!estructurasConEQD2.Contains(estructura.Id))
+                    {
+                        estructurasConEQD2.Add(estructura.Id);
+                        notaEQD2 += "\r\n" + estructura.Id + " α/β=" + alfaBeta.ToString();
+                    }
+                }
+                else
+                {
+                    restriccion.analizarPlanEstructura(planRestriccion, estructura);
+                }
+                if (restriccion.chequearSamplingCoverage(planRestriccion, estructura))
+                {
+                    MessageBox.Show("La estructura " + estructura.Id + " no tiene el suficiente Sampling Coverage.\nNo se puede realizar el análisis");
+                }
+                else
+                {
+                    fila.EnPlan = restriccion.valorMedido + restriccion.unidadValor;
+                    if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
+                    {
+                        IRestriccion restriccionCondicionante = plantilla.listaRestricciones.Where(r => r.etiqueta == restriccion.condicion.EtiquetaRestriccionAnidada).First();
+                        var filaCondicionante = filasAnalisis.FirstOrDefault(f => f.Restriccion == restriccionCondicionante);
+                        ColorearAnalisis.fondoAnidadasWpf(restriccionCondicionante, restriccion, out var fondoC, out var fondoD);
+                        if (filaCondicionante != null)
+                        {
+                            filaCondicionante.FondoEnPlan = fondoC;
+                        }
+                        fila.FondoEnPlan = fondoD;
+                    }
+                    else
+                    {
+                        fila.FondoEnPlan = ColorearAnalisis.fondoWpf(restriccion);
+                    }
+                }
+                if (!string.IsNullOrEmpty(restriccion.prioridad))
+                {
+                    fila.Prioridad = restriccion.prioridad;
+                }
+
+                PlanningItem plan2Restriccion = (!string.IsNullOrEmpty(restriccion.planMod) && plan2Mod != null) ? plan2Mod : plan2;
+                Structure estructura2 = estructuraCorrespondiente2(restriccion.estructura, plan2);
+                if (estructura2 == null)
+                {
+                    MessageBox.Show("No se encontró la estructura " + restriccion.estructura.nombre + " en el " + plan2.Id + ".\nNo se pude realizar el análisis");
+                }
+                else
+                {
+                    if (CHB_EvaluarConEQD2.IsChecked == true)
+                    {
+                        int numeroFraccionesPlan2 = (int)((PlanSetup)plan2).UniqueFractionation.NumberOfFractions;
+                        restriccion.analizarPlanEstructura(plan2Restriccion, estructura2, alfaBeta, numeroFraccionesPlan2);
+                    }
+                    else
+                    {
+                        restriccion.analizarPlanEstructura(plan2Restriccion, estructura2);
+                    }
+                    if (restriccion.chequearSamplingCoverage(plan2Restriccion, estructura2))
+                    {
+                        MessageBox.Show("La estructura " + estructura2.Id + " no tiene el suficiente Sampling Coverage.\nNo se puede realizar el análisis");
+                    }
+                    else
+                    {
+                        fila.EnPlan2 = restriccion.valorMedido + restriccion.unidadValor;
+                        if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.CondicionadaPor)
+                        {
+                            IRestriccion restriccionCondicionante = plantilla.listaRestricciones.Where(r => r.etiqueta == restriccion.condicion.EtiquetaRestriccionAnidada).First();
+                            var filaCondicionante = filasAnalisis.FirstOrDefault(f => f.Restriccion == restriccionCondicionante);
+                            ColorearAnalisis.fondoAnidadasWpf(restriccionCondicionante, restriccion, out var fondoC2, out var fondoD2);
+                            if (filaCondicionante != null)
+                            {
+                                filaCondicionante.FondoEnPlan2 = fondoC2;
+                            }
+                            fila.FondoEnPlan2 = fondoD2;
+                        }
+                        else
+                        {
+                            fila.FondoEnPlan2 = ColorearAnalisis.fondoWpf(restriccion);
+                        }
+
+                        if (restriccion.GetType() == typeof(RestriccionDosisMax))
+                        {
+                            fila.EsDmax = true;
+                            fila.VolumenDmaxTexto = RestriccionDosisMax.volumenDosisMaxima.ToString();
+                        }
+                    }
+                }
+            }
+        }
+
+        private Structure estructuraCorrespondiente(string nombreEstructura, PlanningItem plan)
+        {
+            foreach (var fila in filasEstructuras)
+            {
+                if (fila.NombreSlot.Equals(nombreEstructura))
+                {
+                    return Estructura.listaEstructuras(plan).Where(s => s.Id.Equals(fila.StructureId)).FirstOrDefault();
+                }
+            }
+            return null;
+        }
+
+        // El ID de estructura en DGV_Estructuras se asocia solo contra "plan" (asociarEstructuras()).
+        // plan2 puede tener un structure set distinto (otro Id para la misma estructura), así que
+        // para plan2 se re-asocia por nombre/alias directamente contra su propio structure set,
+        // en vez de reusar el ID resuelto para plan.
+        private Structure estructuraCorrespondiente2(Estructura estructuraTemplate, PlanningItem plan2)
+        {
+            return Estructura.asociarConLista(estructuraTemplate.nombresPosibles, Estructura.listaEstructuras(plan2));
+        }
+
+        private string infoPlan()
+        {
+            return planSeleccionado().Id;
+        }
+
+        private void BT_Analizar_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                aplicarPrescripciones();
+                llenarDGVAnalisis();
+                Form2.escribirArchivoParEstructuras(listaParesEstructuras(), Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
+            }
+            catch (Exception ex)
+            {
+                logError($"BT_Analizar_Click paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", ex);
+                MessageBox.Show("Error al analizar la plantilla:\n" + ex.Message + "\n\nSe registró el detalle en log.txt");
+            }
+        }
+
+        private void BT_SeleccionarPlan_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                llenarDGVEstructuras();
+                llenarDGVPrescripciones();
+            }
+            catch (Exception exp)
+            {
+                logError($"BT_SeleccionarPlan_Click paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", exp);
+                MessageBox.Show("Error al seleccionar el plan:\n" + exp.Message + "\n\nSe registró el detalle en log.txt");
+            }
+        }
+
+        // ponytail: log a archivo plano, sin rotación; si el log crece mucho hay que pasarlo a algo con rotación
+        private static void logError(string contexto, Exception ex)
+        {
+            try
+            {
+                File.AppendAllText("log.txt", $"\r\n[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] {contexto}\r\n{ex}\r\n");
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private void Form2_Closing(object sender, CancelEventArgs e)
+        {
+            if (hayContext)
+            {
+            }
+            else if (paciente != null)
+            {
+                LB_Cursos.Items.Clear();
+                LB_Planes.Items.Clear();
+                cerrarPaciente();
+            }
+            if (app != null)
+            {
+                app.Dispose();
+            }
+        }
+
+        private void TB_ID_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            BT_AbrirPaciente.IsEnabled = !string.IsNullOrEmpty(TB_ID.Text);
+        }
+
+        private void LB_Planes_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
+        {
+            BT_SeleccionarPlan.IsEnabled = LB_Planes.SelectedItems.Count == 2;
+            actualizarBotonAnalizar();
+        }
+
+        private void actualizarBotonAnalizar()
+        {
+            BT_Analizar.IsEnabled = LB_Planes.SelectedItems.Count == 2 && filasEstructuras.Count > 0;
+        }
+
+        private void prepararControlesContext()
+        {
+            label4.IsEnabled = false;
+            TB_ID.IsEnabled = false;
+            BT_AbrirPaciente.IsEnabled = false;
+            label2.IsEnabled = false;
+            LB_Cursos.IsEnabled = false;
+            Label3.IsEnabled = false;
+            LB_Planes.IsEnabled = false;
+            BT_SeleccionarPlan.IsEnabled = false;
+        }
+
+        private void BT_VolumenDmax_Click(object sender, RoutedEventArgs e)
+        {
+            var fila = (FilaAnalisis)((Button)sender).DataContext;
+            var restriccion = (RestriccionDosisMax)fila.Restriccion;
+            FormTB formTb = new FormTB(fila.VolumenDmaxTexto, true);
+            formTb.Title = "Volumen dosis maxima";
+            formTb.L_Texto.Text = "Definir el tamaño del elemento de volumen para el \ncálculo de la dosis máxima [cm3]";
+            formTb.ShowDialog();
+
+            if (formTb.DialogResult == true)
+            {
+                Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
+                restriccion.analizarPlanEstructura(planSeleccionado(), estructura, Metodos.validarYConvertirADouble(formTb.salida));
+                fila.Metrica = restriccion.valorMedido + restriccion.unidadValor;
+                fila.FondoMetrica = ColorearAnalisis.fondoWpf(restriccion);
+                fila.VolumenDmaxTexto = formTb.salida;
+            }
+        }
+
+        private List<parEstructura> listaParesEstructuras()
+        {
+            List<parEstructura> lista = new List<parEstructura>();
+            foreach (var fila in filasEstructuras)
+            {
+                lista.Add(new parEstructura() { estructuraNombre = fila.NombreSlot, structureID = fila.StructureId });
+            }
+            return lista;
+        }
+
+        private string StructureSetUID(PlanningItem plan)
+        {
+            if (plan is PlanSetup)
+            {
+                return ((PlanSetup)plan).StructureSet.UID;
+            }
+            else
+            {
+                return ((PlanSum)plan).StructureSet.UID;
+            }
+        }
+
+        #region Imprimir
+
+        private List<ColumnaReporte> columnasReporte()
+        {
+            return new List<ColumnaReporte>
+            {
+                new ColumnaReporte { Encabezado = "Estructura", Ancho = 60 },
+                new ColumnaReporte { Encabezado = "Prioridad", Ancho = 55 },
+                new ColumnaReporte { Encabezado = "Métrica", Ancho = 60 },
+                new ColumnaReporte { Encabezado = "Vol [cm3]", Ancho = 60 },
+                new ColumnaReporte { Encabezado = planSeleccionado().Id, Ancho = 70 },
+                new ColumnaReporte { Encabezado = plan2.Id, Ancho = 70 },
+                new ColumnaReporte { Encabezado = "Esperado", Ancho = 70 },
+                new ColumnaReporte { Encabezado = "Ref.", Ancho = 40 },
+            };
+        }
+
+        private static System.Drawing.Color colorDrawing(System.Windows.Media.Brush brush)
+        {
+            if (brush is System.Windows.Media.SolidColorBrush solido && solido.Color.A != 0)
+            {
+                var c = solido.Color;
+                return System.Drawing.Color.FromArgb(255, c.R, c.G, c.B);
+            }
+            return System.Drawing.Color.White;
+        }
+
+        private TablaReporte tablaReporte()
+        {
+            var tabla = new TablaReporte { Columnas = columnasReporte() };
+            foreach (var fila in filasAnalisis)
+            {
+                var filaReporte = new FilaReporte();
+                filaReporte.Valores.AddRange(new[] { fila.Estructura, fila.Prioridad, fila.Metrica, fila.Volumen, fila.EnPlan, fila.EnPlan2, fila.Esperado, fila.Referencia });
+                filaReporte.Fondos.AddRange(new[] { colorDrawing(null), colorDrawing(null), colorDrawing(fila.FondoMetrica), colorDrawing(null), colorDrawing(fila.FondoEnPlan), colorDrawing(fila.FondoEnPlan2), colorDrawing(null), colorDrawing(null) });
+                tabla.Filas.Add(filaReporte);
+            }
+            return tabla;
+        }
+
+        private Document reporte()
+        {
+            string usuarioNombre = hayContext ? usuario.Name : app.CurrentUser.Name;
+            double prescripcion = 0;
+            if (planSeleccionado() is PlanSetup)
+            {
+                prescripcion = ((PlanSetup)planSeleccionado()).TotalPrescribedDose.Dose / 100;
+            }
+            else if (planSeleccionado() is PlanSum)
+            {
+                foreach (PlanSetup plan in ((PlanSum)planSeleccionado()).PlanSetups)
+                {
+                    prescripcion += plan.TotalPrescribedDose.Dose / 100;
+                }
+            }
+            return Reporte.crearReporte(paciente.LastName, paciente.FirstName, paciente.Id, equipo(), plantilla.nombre, plantilla.nota, usuarioNombre, Convert.ToString(infoPlan()), Convert.ToString(prescripcion), tablaReporte());
+        }
+
+        private void BT_GuardarReporte_Click(object sender, RoutedEventArgs e)
+        {
+            Reporte.exportarAPdf(paciente.LastName, paciente.FirstName, paciente.Id, planSeleccionado().Id, plantilla.nombre, reporte());
+        }
+
+        private void BT_Imprimir_Click(object sender, RoutedEventArgs e)
+        {
+            var pd = new MigraDoc.Rendering.Printing.MigraDocPrintDocument();
+            var rendered = new DocumentRenderer(reporte());
+            rendered.PrepareDocument();
+            pd.Renderer = rendered;
+            var printDialog = new System.Windows.Forms.PrintDialog();
+            if (printDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
+            {
+                pd.PrinterSettings = printDialog.PrinterSettings;
+                pd.Print();
+            }
+        }
+
+        #endregion
+
+        public void CHB_EvaluarConEQD2_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            if (CHB_EvaluarConEQD2.IsChecked == true)
+            {
+                if (plan is PlanSum || plan2 is PlanSum)
+                {
+                    MessageBox.Show("No funciona para planes suma");
+                    CHB_EvaluarConEQD2.IsChecked = false;
+                }
+                else if (((PlanSetup)plan).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200
+                    || ((PlanSetup)plan2).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200)
+                {
+                    MessageBox.Show("La dosis día es de 200cGy en alguno de los dos planes");
+                    CHB_EvaluarConEQD2.IsChecked = false;
+                }
+                else
+                {
+                    Col_AlfaBeta.Visibility = Visibility.Visible;
+                    cargarAlfaBetaDGVEstructuras();
+                }
+            }
+            else
+            {
+                Col_AlfaBeta.Visibility = Visibility.Collapsed;
+            }
+        }
+
+        public void cargarAlfaBetaDGVEstructuras()
+        {
+            foreach (var fila in filasEstructuras)
+            {
+                fila.AlfaBeta = Estructura.AlfaBeta(fila.NombreSlot).ToString();
+            }
+        }
+
+        // El α/β en DGV_Estructuras está indexado por el structureID de "plan" (asociarEstructuras()
+        // solo asocia contra plan, ver estructuraCorrespondiente2). Es una propiedad de la anatomía, no
+        // del plan, así que el mismo valor se reusa para analizar plan y plan2.
+        private double alfaBetaDeEstructura(string structureIdPlan1)
+        {
+            foreach (var fila in filasEstructuras)
+            {
+                if (fila.StructureId == structureIdPlan1)
+                {
+                    return Metodos.validarYConvertirADouble(fila.AlfaBeta);
+                }
+            }
+            return 3;
+        }
+    }
+}

@@ -239,11 +239,12 @@
     <Compile Include="Form1_ext.Designer.cs">
       <DependentUpon>Form1_ext.cs</DependentUpon>
     </Compile>
-    <Compile Include="Form2_DosPlanes.cs">
-      <SubType>Form</SubType>
-    </Compile>
-    <Compile Include="Form2_DosPlanes.Designer.cs">
-      <DependentUpon>Form2_DosPlanes.cs</DependentUpon>
+    <Page Include="Form2_DosPlanes.xaml">
+      <Generator>MSBuild:Compile</Generator>
+      <SubType>Designer</SubType>
+    </Page>
+    <Compile Include="Form2_DosPlanes.xaml.cs">
+      <DependentUpon>Form2_DosPlanes.xaml</DependentUpon>
     </Compile>
     <Page Include="FormConfiguracion.xaml">
       <Generator>MSBuild:Compile</Generator>
@@ -338,9 +339,6 @@
     <EmbeddedResource Include="Form1_ext.resx">
       <DependentUpon>Form1_ext.cs</DependentUpon>
       <SubType>Designer</SubType>
-    </EmbeddedResource>
-    <EmbeddedResource Include="Form2_DosPlanes.resx">
-      <DependentUpon>Form2_DosPlanes.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Form3.resx">
       <DependentUpon>Form3.cs</DependentUpon>

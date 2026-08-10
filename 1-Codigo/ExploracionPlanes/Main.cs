@@ -250,10 +250,6 @@ namespace ExploracionPlanes
                 Form2_DosPlanes = new Form2_DosPlanes(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, null, null, null);
             }
             Form2_DosPlanes.ShowDialog();
-            if (hayContext)
-            {
-                Form2_DosPlanes.Dispose();
-            }
         }
 
         public Plantilla plantillaSeleccionada()

@@ -408,7 +408,35 @@ decir, para no cambiar comportamiento observable sin que se pida.
 **Pendiente de ajuste fino de UI (no bloqueante, a pedido del usuario se deja para después)**: en la
 pantalla real con datos, tanto el panel de "Asociar estructuras" como el de "Analizar" quedan con
 espacio sobrante a la derecha (las columnas con `Width="Auto"` no llegan a ocupar todo el ancho
-asignado). Ajustar cuando se retome trabajo visual fino sobre Form2.
+asignado). Ajustar cuando se retome trabajo visual fino sobre Form2/Form2_DosPlanes.
+
+### Form2_DosPlanes: COMPLETADO
+
+Mismo patrón que `Form2` (`FilaEstructura`/`FilaPrescripcion`/`FilaAnalisis`), con las diferencias
+propias de comparar dos planes en vez de analizar uno:
+- `FilaAnalisis` ganó `EnPlan2`/`FondoEnPlan2` (Form2 solo usa `EnPlan`/`FondoEnPlan`). Los headers de
+  esas dos columnas se renombran en código al `Id` real de cada plan (`Col_EnPlan1.Header = ...`),
+  igual que hacía el original con `HeaderText`.
+- `DGV_Estructuras` acá no ordena por parecido (Damerau-Levenshtein) como `Form2` — cada fila del
+  combo tiene la MISMA lista completa de estructuras del plan (`Estructura.listaEstructurasID`), y el
+  matcheo automático es solo por nombre exacto o memoria guardada. Se portó tal cual, sin “mejorarlo”
+  a que también ordene por parecido (cambiaría comportamiento no pedido).
+- Sin "Duplicar estructura"/"Ocultar no analizadas" — esas dos son exclusivas de `Form2`, el original
+  nunca las tuvo acá tampoco.
+- Mismos 2 fixes de `Course` disposed / `SelectionChanged` que Form2 (mismo código, mismo bug).
+- El bug preexistente del click de Dmax pintando la celda "Métrica" en vez de "En Plan" también está
+  en el original de este formulario (`Cells[2]` en vez de `Cells[4]`) — mismo tratamiento que en
+  Form2: preservado vía `FondoMetrica`, no corregido.
+
+Verificado por el usuario con datos reales de Eclipse (`screenshots/10082026/`), sin problemas
+nuevos — los 2 planes comparados muestran columnas con el `Id` real y coloreado pass/fail correcto
+en ambas.
+
+## Fase 3: cerrada (excepto Form1_ext, diferido)
+
+`Form1_prioridades`, `Form2`, `Form2_DosPlanes`, `PlantillaBlanco` migrados. `Form1_ext` diferido a
+pedido del usuario (atado a la importación pendiente de constraints SBRT/RC — ver §8 de
+`ResumenProyecto.md`). Toda la app WPF excepto ese único formulario.
 
 Runtime: WPF se hace sobre .NET Framework 4.5.1 primero (no toca ESAPI por `HintPath` ni
 PDFsharp/MigraDoc-GDI). Migrar a .NET moderno (6/8) queda como paso separado y posterior, evaluado

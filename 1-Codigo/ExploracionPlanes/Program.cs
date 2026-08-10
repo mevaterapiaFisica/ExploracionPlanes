@@ -1,10 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Threading;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows.Forms;
+using System.Windows;
 
 namespace ExploracionPlanes
 {
@@ -20,9 +17,13 @@ namespace ExploracionPlanes
             current.NumberFormat.NumberDecimalSeparator = ".";
             Thread.CurrentThread.CurrentCulture = current;
             Thread.CurrentThread.CurrentUICulture = current;
-            Application.EnableVisualStyles();
-            Application.SetCompatibleTextRenderingDefault(false);
-            Application.Run(new Main());
+            // OnExplicitShutdown: por default (OnLastWindowClose) WPF cierra toda la app cuando
+            // se cierra CUALQUIER ventana rastreada, no solo la principal - cerrar un dialogo hijo
+            // (ej. "Aplicar a un plan") tiraba abajo Main con él.
+            var app = new Application { ShutdownMode = ShutdownMode.OnExplicitShutdown };
+            var main = new Main();
+            main.Closed += (s, e) => app.Shutdown();
+            app.Run(main);
         }
     }
 }

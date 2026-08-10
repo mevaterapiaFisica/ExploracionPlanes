@@ -17,7 +17,6 @@ namespace VMS.TPS
         {
             ExploracionPlanes.Main main = new ExploracionPlanes.Main(true, context.Patient, context.PlanSetup, context.CurrentUser,context.PlanSumsInScope,context.PlansInScope);
             main.ShowDialog();
-            main.Dispose();
         }
     }
 }

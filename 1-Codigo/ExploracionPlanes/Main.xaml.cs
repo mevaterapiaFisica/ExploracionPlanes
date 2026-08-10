@@ -1,21 +1,17 @@
-﻿using System;
-using System.IO;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
+using System.IO;
 using System.Linq;
-using System.Text;
-using System.Windows.Forms;
+using System.Windows;
+using System.Windows.Controls;
 using VMS.TPS.Common.Model.API;
 
 namespace ExploracionPlanes
 {
-    public partial class Main : Form
+    public partial class Main : DialogoWpf
     {
         public Form1_prioridades crearPlantilla;
         public Form1_ext crearPlantilla_ext;
-        //public PruebaImprimir aplicarPlantilla;
         public Form2 aplicarPlantilla;
         public Form3 aplicarPorLote;
         public PlantillaBlanco plantillaBlanco;
@@ -26,7 +22,6 @@ namespace ExploracionPlanes
         Patient pacienteContext = null;
         PlanningItem planContext = null;
         PlanningItem planMod = null;
-        PlanningItem planParaComparar = null;
         PlanningItem planParaCompararMod = null;
         User usuarioContext = null;
         List<PlanningItem> planesParaComparar = new List<PlanningItem>();
@@ -35,7 +30,6 @@ namespace ExploracionPlanes
 
         public Main(bool _hayContext = false, Patient _pacienteContext = null, PlanningItem _planContext = null, User _usuarioContext = null, IEnumerable<PlanSum> _planSumsContext = null, IEnumerable<PlanSetup> _plansContext = null)
         {
-            //DesdeCSV.LeerTabla();
             InitializeComponent();
             leerPlantillas();
             hayContext = _hayContext;
@@ -65,27 +59,21 @@ namespace ExploracionPlanes
                 texto += Chequeos.chequeos(planContext, false);
                 if (texto != "")
                 {
-                    if (MessageBox.Show(texto, "Chequeos en plan actual") == DialogResult.OK)
-                    {
-
-                    }
+                    MessageBox.Show(texto, "Chequeos en plan actual");
                 }
                 else
                 {
-                    if (MessageBox.Show("Todo bien", "Chequeos en plan actual") == DialogResult.OK)
-                    {
-
-                    }
+                    MessageBox.Show("Todo bien", "Chequeos en plan actual");
                 }
                 Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
                 int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
-                LB_Plantillas.ClearSelected();
+                LB_Plantillas.UnselectAll();
                 LB_Plantillas.SelectedIndex = indice;
             }
             else if (hayContext && pacienteContext == null)
             {
                 MessageBox.Show("Debe abrir un paciente");
-                this.Close();
+                Close();
             }
             else if (hayContext && planContext == null)
             {
@@ -97,53 +85,32 @@ namespace ExploracionPlanes
                     texto += Chequeos.chequeos(planContext, true);
                     if (texto != "")
                     {
-                        if (MessageBox.Show(texto, "Chequeos en plan actual") == DialogResult.OK)
-                        {
-
-                        }
+                        MessageBox.Show(texto, "Chequeos en plan actual");
                     }
                     else
                     {
-                        if (MessageBox.Show("Todo bien", "Chequeos en plan actual") == DialogResult.OK)
-                        {
-
-                        }
+                        MessageBox.Show("Todo bien", "Chequeos en plan actual");
                     }
                     Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
                     int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
-                    LB_Plantillas.ClearSelected();
+                    LB_Plantillas.UnselectAll();
                     LB_Plantillas.SelectedIndex = indice;
                 }
                 else
                 {
                     MessageBox.Show("Debe seleccionar un plan");
-                    this.Close();
+                    Close();
                 }
-
             }
-            else
-            {
-                /*MessageBox.Show("Se va a hacer el chequeo");
-                texto += Chequeos.chequeos(planContext, false);
-                if (texto != "")
-                {
-                    MessageBox.Show(texto, "Chequeos en plan actual");
-                }
-                else
-                {
-                    MessageBox.Show("Todo bien", "Chequeos en plan actual");
-                }*/
-            }
-
         }
 
-        private void BT_Nueva_Click(object sender, EventArgs e)
+        private void BT_Nueva_Click(object sender, RoutedEventArgs e)
         {
             crearPlantilla = new Form1_prioridades(this, false);
             crearPlantilla.ShowDialog();
         }
 
-        private void BT_Editar_Click(object sender, EventArgs e)
+        private void BT_Editar_Click(object sender, RoutedEventArgs e)
         {
             if (plantillaSeleccionada().tieneCondicionesTipo1())
             {
@@ -155,11 +122,9 @@ namespace ExploracionPlanes
                 crearPlantilla = new Form1_prioridades(this, true);
                 crearPlantilla.ShowDialog();
             }
-
-
         }
 
-        private void BT_AplicarAUnPlan_Click(object sender, EventArgs e)
+        private void BT_AplicarAUnPlan_Click(object sender, RoutedEventArgs e)
         {
             planMod = null;
             if (hayContext)
@@ -169,10 +134,7 @@ namespace ExploracionPlanes
                     string nombrePlanMod = planContext.Id + plantillaSeleccionada().ExtensionPlanMod();
                     if (planesParaComparar.Any(p => p.Id == nombrePlanMod))
                     {
-                        if (planesParaComparar.Any(p => p.Id == nombrePlanMod))
-                        {
-                            planMod = planesParaComparar.Where(p => p.Id == nombrePlanMod).First();
-                        }
+                        planMod = planesParaComparar.Where(p => p.Id == nombrePlanMod).First();
                         if (planMod is PlanSetup && ((PlanSetup)planMod).ApprovalStatus != VMS.TPS.Common.Model.Types.PlanSetupApprovalStatus.Rejected)
                         {
                             MessageBox.Show("El plan " + planMod.Id + " debe estar rechazado");
@@ -180,7 +142,7 @@ namespace ExploracionPlanes
                         if (!PlanYModSonIguales((PlanSetup)planContext, (PlanSetup)planMod))
                         {
                             planMod = null;
-                            this.Close();
+                            Close();
                         }
                     }
                     else if (planesParaComparar.Any(p => p.Id.ToLower().Contains(plantillaSeleccionada().ExtensionPlanMod())))
@@ -197,7 +159,7 @@ namespace ExploracionPlanes
             aplicarPlantilla.ShowDialog();
         }
 
-        private void BT_CompararPlanes_Click(object sender, EventArgs e)
+        private void BT_CompararPlanes_Click(object sender, RoutedEventArgs e)
         {
             planMod = null;
             planParaCompararMod = null;
@@ -222,10 +184,8 @@ namespace ExploracionPlanes
                         }
                         if (!PlanYModSonIguales((PlanSetup)planContext, (PlanSetup)planMod))
                         {
-                            //this.Close();
                             return;
                         }
-
                     }
                     if (planesParaComparar.Any(p => p.Id == nombrePlanParaCompararMod))
                     {
@@ -236,10 +196,8 @@ namespace ExploracionPlanes
                         }
                         if (!PlanYModSonIguales((PlanSetup)planesParaCompararForm.planParaComparar, (PlanSetup)planParaCompararMod))
                         {
-                            //this.Close();
                             return;
                         }
-
                     }
                 }
                 Form2_DosPlanes = new Form2_DosPlanes(plantillaSeleccionada(), hayContext, pacienteContext, planContext, usuarioContext, planesParaCompararForm.planParaComparar, planMod, planParaCompararMod);
@@ -257,14 +215,13 @@ namespace ExploracionPlanes
             return (Plantilla)LB_Plantillas.SelectedItem;
         }
 
-        private void BT_AplicarPorLote_Click(object sender, EventArgs e)
+        private void BT_AplicarPorLote_Click(object sender, RoutedEventArgs e)
         {
             aplicarPorLote = new Form3(plantillaSeleccionada());
             aplicarPorLote.ShowDialog();
         }
 
-
-        private void BT_Ver_Click(object sender, EventArgs e)
+        private void BT_Ver_Click(object sender, RoutedEventArgs e)
         {
             plantillaBlanco = new PlantillaBlanco(plantillaSeleccionada());
             plantillaBlanco.ShowDialog();
@@ -272,24 +229,22 @@ namespace ExploracionPlanes
 
         public void leerPlantillas()
         {
-            LB_Plantillas.DataSource = null;
-            LB_Plantillas.DataSource = Plantilla.leerPlantillas();
-            LB_Plantillas.DisplayMember = "etiqueta";
-            //List<Plantilla> plantillas = Plantilla.leerPlantillas();
+            LB_Plantillas.ItemsSource = null;
+            LB_Plantillas.ItemsSource = Plantilla.leerPlantillas();
         }
 
-        private void LB_Plantillas_SelectedIndexChanged(object sender, EventArgs e)
+        private void LB_Plantillas_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
         {
             habilitarBotones();
         }
 
-        private void BT_Eliminar_Click(object sender, EventArgs e)
+        private void BT_Eliminar_Click(object sender, RoutedEventArgs e)
         {
             plantillaSeleccionada().eliminar();
             leerPlantillas();
         }
 
-        private void BT_Duplicar_Click(object sender, EventArgs e)
+        private void BT_Duplicar_Click(object sender, RoutedEventArgs e)
         {
             FormTB formTb = new FormTB();
             formTb.Title = "Nombre plantilla";
@@ -302,39 +257,38 @@ namespace ExploracionPlanes
             }
         }
 
-
         private void habilitarBotones()
         {
             if (hayContext)
             {
-                BT_Nueva.Enabled = false;
-                BT_NuevaConCondiciones.Enabled = false;
-                BT_Editar.Enabled = false;
-                BT_Ver.Enabled = false;
-                BT_Duplicar.Enabled = false;
-                BT_Eliminar.Enabled = false;
-                BT_AplicarAUnPlan.Enabled = true;
-                BT_CompararPlanes.Enabled = true;
-                BT_AplicarPorLote.Enabled = false;
-                BT_ExtraerDePlantilla.Enabled = false;
+                BT_Nueva.IsEnabled = false;
+                BT_NuevaConCondiciones.IsEnabled = false;
+                BT_Editar.IsEnabled = false;
+                BT_Ver.IsEnabled = false;
+                BT_Duplicar.IsEnabled = false;
+                BT_Eliminar.IsEnabled = false;
+                BT_AplicarAUnPlan.IsEnabled = true;
+                BT_CompararPlanes.IsEnabled = true;
+                BT_AplicarPorLote.IsEnabled = false;
+                BT_ExtraerDePlantilla.IsEnabled = false;
             }
             else
             {
-                BT_CompararPlanes.Enabled = true;
-                Metodos.habilitarBoton(editaPlantilla, BT_Nueva);
-                Metodos.habilitarBoton(editaPlantilla, BT_NuevaConCondiciones);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla, BT_Editar);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla, BT_Duplicar);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1, BT_Ver);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count > 0 && editaPlantilla, BT_Eliminar);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1 && !((Plantilla)LB_Plantillas.SelectedItems[0]).esParaExtraccion, BT_AplicarAUnPlan);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1, BT_AplicarPorLote);
-                Metodos.habilitarBoton(editaPlantilla, BT_Configuracion);
-                Metodos.habilitarBoton(LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla, BT_ExtraerDePlantilla);
+                BT_CompararPlanes.IsEnabled = true;
+                BT_Nueva.IsEnabled = editaPlantilla;
+                BT_NuevaConCondiciones.IsEnabled = editaPlantilla;
+                BT_Editar.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla;
+                BT_Duplicar.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla;
+                BT_Ver.IsEnabled = LB_Plantillas.SelectedItems.Count == 1;
+                BT_Eliminar.IsEnabled = LB_Plantillas.SelectedItems.Count > 0 && editaPlantilla;
+                BT_AplicarAUnPlan.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && !((Plantilla)LB_Plantillas.SelectedItems[0]).esParaExtraccion;
+                BT_AplicarPorLote.IsEnabled = LB_Plantillas.SelectedItems.Count == 1;
+                BT_Configuracion.IsEnabled = editaPlantilla;
+                BT_ExtraerDePlantilla.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla;
             }
         }
 
-        private void BT_HabilitarEdicion_Click(object sender, EventArgs e)
+        private void BT_HabilitarEdicion_Click(object sender, RoutedEventArgs e)
         {
             if (editaPlantilla == false)
             {
@@ -345,32 +299,32 @@ namespace ExploracionPlanes
                 if (formTb.DialogResult == true)
                 {
                     editaPlantilla = true;
-                    L_Editando.Visible = true;
-                    BT_HabilitarEdicion.Text = "Deshabilitar Edición";
+                    L_Editando.Visibility = Visibility.Visible;
+                    BT_HabilitarEdicion.Content = "Deshabilitar Edición";
                 }
             }
             else
             {
                 editaPlantilla = false;
-                L_Editando.Visible = false;
-                BT_HabilitarEdicion.Text = "Habilitar Edición";
+                L_Editando.Visibility = Visibility.Collapsed;
+                BT_HabilitarEdicion.Content = "Habilitar Edición";
             }
             habilitarBotones();
         }
 
-        private void BT_Configuracion_Click(object sender, EventArgs e)
+        private void BT_Configuracion_Click(object sender, RoutedEventArgs e)
         {
             FormConfiguracion formConfiguracion = new FormConfiguracion();
             formConfiguracion.ShowDialog();
-            //LB_Plantillas.Items.Clear();
             leerPlantillas();
         }
 
-        private void BT_NuevaConCondiciones_Click(object sender, EventArgs e)
+        private void BT_NuevaConCondiciones_Click(object sender, RoutedEventArgs e)
         {
             crearPlantilla_ext = new Form1_ext(this, false);
             crearPlantilla_ext.ShowDialog();
         }
+
         public void eliminarArchivosParesEstructura(int meses)
         {
             string pathParEstructuras = Properties.Settings.Default.Path + @"\paresEstructuras\";
@@ -385,12 +339,12 @@ namespace ExploracionPlanes
             }
         }
 
-        private void BT_ExtraerDePlantilla_Click(object sender, EventArgs e)
+        private void BT_ExtraerDePlantilla_Click(object sender, RoutedEventArgs e)
         {
             FormTB formTb = new FormTB(((Plantilla)(LB_Plantillas.SelectedItem)).etiqueta);
             formTb.Title = "Extraer de plantilla";
             formTb.L_Texto.Text = "Ingrese el nombre de la plantilla";
-            formTb.CHB_Extra.Visibility = System.Windows.Visibility.Visible;
+            formTb.CHB_Extra.Visibility = Visibility.Visible;
             formTb.CHB_Extra.Content = "Buscar solo planes aprobados";
             formTb.ShowDialog();
             if (formTb.DialogResult == true)
@@ -413,15 +367,13 @@ namespace ExploracionPlanes
             }
             for (int i = 0; i < plan.Beams.Where(p => !p.IsSetupField).Count(); i++)
             {
-                if (Math.Round(planMod.Beams.Where(p => !p.IsSetupField).ElementAt(i).Meterset.Value,2) != 0 && Math.Round(plan.Beams.Where(p => !p.IsSetupField).ElementAt(i).Meterset.Value,2) != Math.Round(planMod.Beams.Where(p => !p.IsSetupField).ElementAt(i).Meterset.Value,2))
+                if (Math.Round(planMod.Beams.Where(p => !p.IsSetupField).ElementAt(i).Meterset.Value, 2) != 0 && Math.Round(plan.Beams.Where(p => !p.IsSetupField).ElementAt(i).Meterset.Value, 2) != Math.Round(planMod.Beams.Where(p => !p.IsSetupField).ElementAt(i).Meterset.Value, 2))
                 {
                     MessageBox.Show("El plan " + plan.Id + " y el plan " + planMod.Id + " tienen diferentes UMs (y distintas de 0) en algunos de sus campos.\nRevisar antes de continuar");
                     return false;
                 }
             }
             return true;
-
         }
     }
 }
-

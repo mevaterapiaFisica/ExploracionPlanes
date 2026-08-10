@@ -1,0 +1,60 @@
+<local:DialogoWpf x:Class="ExploracionPlanes.Main"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ExploracionPlanes"
+        Title="Exploración de planes" Height="580" Width="520"
+        WindowStartupLocation="CenterScreen"
+        Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13">
+    <Window.Resources>
+        <Style x:Key="BotonPrimario" TargetType="Button">
+            <Setter Property="Background" Value="#1B2A4A" />
+            <Setter Property="Foreground" Value="White" />
+            <Setter Property="Padding" Value="10,6" />
+            <Setter Property="BorderThickness" Value="0" />
+            <Setter Property="Cursor" Value="Hand" />
+            <Setter Property="Margin" Value="0,0,0,8" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+        </Style>
+        <Style x:Key="BotonSecundario" TargetType="Button" BasedOn="{StaticResource BotonPrimario}">
+            <Setter Property="Background" Value="White" />
+            <Setter Property="Foreground" Value="#1B2A4A" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="#1B2A4A" />
+        </Style>
+    </Window.Resources>
+    <Grid Margin="16">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="10" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*" />
+            <ColumnDefinition Width="10" />
+            <ColumnDefinition Width="230" />
+        </Grid.ColumnDefinitions>
+
+        <TextBlock Grid.Row="0" Grid.Column="0" Text="Plantillas" FontWeight="SemiBold" Margin="0,0,0,6" />
+        <ListBox x:Name="LB_Plantillas" Grid.Row="1" Grid.Column="0" SelectionMode="Extended" DisplayMemberPath="etiqueta" SelectionChanged="LB_Plantillas_SelectedIndexChanged" />
+
+        <StackPanel Grid.Row="1" Grid.Column="2">
+            <Button x:Name="BT_AplicarAUnPlan" Content="Aplicar plantilla a un plan" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_AplicarAUnPlan_Click" />
+            <Button x:Name="BT_CompararPlanes" Content="Comparar dos planes" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_CompararPlanes_Click" />
+            <Button x:Name="BT_Ver" Content="Ver Plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Ver_Click" />
+            <Button x:Name="BT_AplicarPorLote" Content="Extraer información de varios planes" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_AplicarPorLote_Click" />
+            <Button x:Name="BT_ExtraerDePlantilla" Content="Extraer resultados de plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_ExtraerDePlantilla_Click" />
+            <Button x:Name="BT_Nueva" Content="Nueva Plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Nueva_Click" />
+            <Button x:Name="BT_NuevaConCondiciones" Content="Nueva Plantilla con condiciones" Style="{StaticResource BotonSecundario}" Click="BT_NuevaConCondiciones_Click" />
+            <Button x:Name="BT_Editar" Content="Editar plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Editar_Click" />
+            <Button x:Name="BT_Duplicar" Content="Duplicar plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Duplicar_Click" />
+            <Button x:Name="BT_Eliminar" Content="Eliminar plantilla/s" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Eliminar_Click" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">
+            <Button x:Name="BT_Configuracion" Content="Configuración" Style="{StaticResource BotonSecundario}" Margin="0,0,10,0" Click="BT_Configuracion_Click" />
+            <Button x:Name="BT_HabilitarEdicion" Content="Habilitar Edición" Style="{StaticResource BotonSecundario}" Margin="0,0,10,0" Click="BT_HabilitarEdicion_Click" />
+            <TextBlock x:Name="L_Editando" Text="Editando" Foreground="ForestGreen" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed" />
+        </StackPanel>
+    </Grid>
+</local:DialogoWpf>

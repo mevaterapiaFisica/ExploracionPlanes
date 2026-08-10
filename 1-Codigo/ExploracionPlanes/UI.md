@@ -442,6 +442,32 @@ Runtime: WPF se hace sobre .NET Framework 4.5.1 primero (no toca ESAPI por `Hint
 PDFsharp/MigraDoc-GDI). Migrar a .NET moderno (6/8) queda como paso separado y posterior, evaluado
 aparte cuando corresponda.
 
+## Fase 4 (no planeada originalmente): Main.cs, la ventana raíz
+
+`Main.cs` y `Form3.cs` habían quedado listados en el inventario de §5 pero nunca asignados a
+ninguna fase — el usuario lo notó porque, tras cerrar Fase 3, la ventana principal seguía en
+WinForms. Se migró `Main` a pedido explícito; `Form3` queda pendiente (no investigado todavía).
+
+`Main` no usa `DataGridView` (solo un `ListBox` de plantillas), migración directa con el mismo
+patrón de Fase 1. La complicación real fue otra: `Main` es la **ventana raíz** — en modo standalone
+se pasa a `System.Windows.Forms.Application.Run(Form)`, que exige un `Form`, no una `Window`. Se
+cambió `Program.cs` a `System.Windows.Application.Run(Window)` (WPF). El modo plugin (`Script.cs`)
+no se vio afectado — ya mostraba `Main` con `.ShowDialog()`, igual que cualquier otro diálogo.
+
+**Bug real encontrado por el usuario**: al cerrar un diálogo hijo (ej. "Aplicar a un plan") se
+cerraba **toda la app**, Main incluido. Causa: `Application.Run(Window)` usa
+`ShutdownMode.OnLastWindowClose` por default — cierra la app cuando se cierra CUALQUIER ventana
+rastreada por WPF, no solo la principal. Fix: `ShutdownMode="OnExplicitShutdown"` +
+`main.Closed += (s, e) => app.Shutdown();` en `Program.cs`, así el cierre de la app queda atado
+únicamente al cierre de `Main`.
+
+Botones con texto cortado en la primera pasada (columna de 150px, texto como "Extraer información
+de varios planes" no entraba) — fix: columna 230px, ventana 420×560 → 520×580.
+
+Como consecuencia incidental de la reescritura: el campo `Main.planParaComparar`, ya señalado como
+muerto por el compilador (`warning CS0414`) en builds de sesiones anteriores, se eliminó al tocar
+ese archivo.
+
 ### Tokens de diseño para la UI nueva
 
 - **Color**: `#1B2A4A` (azul clínico oscuro, headers/acentos), `#F7F8FA` (fondo neutro), `#2E7D5B`

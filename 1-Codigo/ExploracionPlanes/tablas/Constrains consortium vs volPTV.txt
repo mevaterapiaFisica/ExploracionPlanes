@@ -1,0 +1,16 @@
+###Para SBRT Pulmon
+
+Volumen PTV [cm3],PTV IC(100%) optimo,PTV IC(100%) mandatorio,PTV IC(50%) optimo,PTV IC(50%) mandatorio,Lung-ITV V20 [%]
+<20,1.25,1.4,9,11,5
+20-40,1.2,1.3,6.5,7.5,6
+40-60,1.15,1.2,6,7,10
+60-90,1.15,1.2,5,7,10
+>90,1.15,1.2,4.5,6.5,10
+
+
+###Para SBRT no Pulmon
+
+Volumen PTV [cm3],IC(50%) optimo,IC(50%) mandatorio
+<20,7.5,9.5
+20-40,6,7.5
+>40,5.5,6.5

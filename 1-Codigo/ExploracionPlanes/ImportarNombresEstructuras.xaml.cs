@@ -11,9 +11,8 @@ namespace ExploracionPlanes
     public partial class ImportarNombresEstructuras : DialogoWpf
     {
         Patient paciente;
-        Course curso;
-        PlanningItem plan;
         VMS.TPS.Common.Model.API.Application app;
+        bool appDisposed;
         public List<string> nombresEstructurasSeleccionadas;
 
         public ImportarNombresEstructuras()
@@ -27,6 +26,16 @@ namespace ExploracionPlanes
             {
                 MessageBox.Show("No se puede acceder a Eclipse.\n Compruebe que está en una PC con acceso al TPS");
             }
+            // ponytail: Closed cubre los 3 caminos de cierre (Importar/Cancelar/X) en un solo lugar
+            // — antes solo Cancelar liberaba la sesión de Eclipse, Importar y la X la dejaban abierta.
+            Closed += (s, e) =>
+            {
+                if (app != null && !appDisposed)
+                {
+                    app.Dispose();
+                    appDisposed = true;
+                }
+            };
         }
 
         public bool abrirPaciente(string ID)
@@ -53,7 +62,10 @@ namespace ExploracionPlanes
 
         public void cerrarPaciente()
         {
-            app.ClosePatient();
+            if (app != null && !appDisposed)
+            {
+                app.ClosePatient();
+            }
         }
 
         public Course abrirCurso(Patient paciente, string nombreCurso)
@@ -74,7 +86,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                return curso;
+                return null;
             }
         }
 
@@ -86,7 +98,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                return plan;
+                return null;
             }
         }
 
@@ -161,6 +173,7 @@ namespace ExploracionPlanes
 
         private void BT_SeleccionarPlan_Click(object sender, RoutedEventArgs e)
         {
+            CHLB_Estructuras.Items.Clear();
             List<Structure> lista = listaEstructuras(planSeleccionado());
             foreach (Structure estructura in lista)
             {
@@ -200,10 +213,6 @@ namespace ExploracionPlanes
 
         private void BT_Cancelar_Click(object sender, RoutedEventArgs e)
         {
-            if (app != null)
-            {
-                app.Dispose();
-            }
             DialogResult = false;
         }
     }

@@ -20,10 +20,51 @@
             <Setter Property="Foreground" Value="#1B2A4A" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#1B2A4A" />
+            <!-- Sin esto un botón deshabilitado se ve idéntico a uno habilitado (mismo borde/texto
+                 navy) - en Citrix, con el resaltado de selección ya arreglado, era lo que más
+                 saltaba: no se distinguía qué acción estaba realmente disponible. -->
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#9AA1AD" />
+                    <Setter Property="BorderBrush" Value="#D5D9E0" />
+                    <Setter Property="Background" Value="#F7F8FA" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <!-- El ControlTemplate default de ListBoxItem no lee el Background/Foreground del Style
+             para pintar la selección: tiene su propio Border interno atado a SystemColors.Highlight/
+             HighlightText (vía DynamicResource), así que un Setter/Trigger de Style sobre esas dos
+             propiedades no alcanza a cambiar nada visualmente - se ve el color de acento de Windows,
+             no el celeste que se pidió. En este Citrix el tema de Windows tiene Highlight/HighlightText
+             casi iguales entre sí (o directamente lo bastante oscuros), por eso la fila seleccionada
+             se veía como una barra sólida sin texto legible. Se reemplaza el ControlTemplate entero
+             por uno propio con colores literales, sin depender de SystemColors ni del tema del host. -->
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Fondo" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fondo" Property="Background" Value="#E4EAF6" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Fondo" Property="Background" Value="#C7D6F0" />
+                                <Setter Property="Foreground" Value="#1B2A4A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
     </Window.Resources>
     <Grid Margin="16">
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
             <RowDefinition Height="10" />
@@ -36,25 +77,32 @@
         </Grid.ColumnDefinitions>
 
         <TextBlock Grid.Row="0" Grid.Column="0" Text="Plantillas" FontWeight="SemiBold" Margin="0,0,0,6" />
-        <ListBox x:Name="LB_Plantillas" Grid.Row="1" Grid.Column="0" SelectionMode="Extended" DisplayMemberPath="etiqueta" SelectionChanged="LB_Plantillas_SelectedIndexChanged" />
+        <TextBox x:Name="TB_FiltroPlantillas" Grid.Row="1" Grid.Column="0" Padding="4" Margin="0,0,0,6" TextChanged="TB_FiltroPlantillas_TextChanged" ToolTip="Filtrar por nombre" />
+        <ListBox x:Name="LB_Plantillas" Grid.Row="2" Grid.Column="0" SelectionMode="Extended" DisplayMemberPath="etiqueta" SelectionChanged="LB_Plantillas_SelectedIndexChanged" />
 
-        <StackPanel Grid.Row="1" Grid.Column="2">
+        <StackPanel Grid.Row="0" Grid.RowSpan="3" Grid.Column="2">
             <Button x:Name="BT_AplicarAUnPlan" Content="Aplicar plantilla a un plan" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_AplicarAUnPlan_Click" />
             <Button x:Name="BT_CompararPlanes" Content="Comparar dos planes" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_CompararPlanes_Click" />
             <Button x:Name="BT_Ver" Content="Ver Plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Ver_Click" />
-            <Button x:Name="BT_AplicarPorLote" Content="Extraer información de varios planes" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_AplicarPorLote_Click" />
-            <Button x:Name="BT_ExtraerDePlantilla" Content="Extraer resultados de plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_ExtraerDePlantilla_Click" />
-            <Button x:Name="BT_Nueva" Content="Nueva Plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Nueva_Click" />
-            <Button x:Name="BT_NuevaConCondiciones" Content="Nueva Plantilla con condiciones" Style="{StaticResource BotonSecundario}" Click="BT_NuevaConCondiciones_Click" />
-            <Button x:Name="BT_Editar" Content="Editar plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Editar_Click" />
-            <Button x:Name="BT_Duplicar" Content="Duplicar plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Duplicar_Click" />
-            <Button x:Name="BT_Eliminar" Content="Eliminar plantilla/s" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Eliminar_Click" />
+
+            <Separator x:Name="SeparadorAdmin" Margin="0,4,0,10" />
+            <StackPanel x:Name="PanelAdminPlantillas">
+                <Button x:Name="BT_AplicarPorLote" Content="Extraer información de varios planes" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_AplicarPorLote_Click" />
+                <Button x:Name="BT_ExtraerDePlantilla" Content="Extraer resultados de plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_ExtraerDePlantilla_Click" />
+                <Button x:Name="BT_Nueva" Content="Nueva Plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Nueva_Click" />
+                <Button x:Name="BT_NuevaConCondiciones" Content="Nueva Plantilla con condiciones" Style="{StaticResource BotonSecundario}" Click="BT_NuevaConCondiciones_Click" />
+                <Button x:Name="BT_Editar" Content="Editar plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Editar_Click" />
+                <Button x:Name="BT_Duplicar" Content="Duplicar plantilla" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Duplicar_Click" />
+                <Button x:Name="BT_Eliminar" Content="Eliminar plantilla/s" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_Eliminar_Click" />
+                <Button x:Name="BT_OcultarMostrar" Content="Ocultar/Mostrar plantilla/s" Style="{StaticResource BotonSecundario}" IsEnabled="False" Click="BT_OcultarMostrar_Click" />
+            </StackPanel>
         </StackPanel>
 
-        <StackPanel Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">
+        <StackPanel Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3" Orientation="Horizontal">
             <Button x:Name="BT_Configuracion" Content="Configuración" Style="{StaticResource BotonSecundario}" Margin="0,0,10,0" Click="BT_Configuracion_Click" />
             <Button x:Name="BT_HabilitarEdicion" Content="Habilitar Edición" Style="{StaticResource BotonSecundario}" Margin="0,0,10,0" Click="BT_HabilitarEdicion_Click" />
-            <TextBlock x:Name="L_Editando" Text="Editando" Foreground="ForestGreen" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed" />
+            <TextBlock x:Name="L_Editando" Text="Editando" Foreground="ForestGreen" FontWeight="SemiBold" VerticalAlignment="Center" Visibility="Collapsed" Margin="0,0,10,0" />
+            <CheckBox x:Name="CHB_MostrarOcultas" Content="Mostrar ocultas" VerticalAlignment="Center" Click="CHB_MostrarOcultas_Click" />
         </StackPanel>
     </Grid>
 </local:DialogoWpf>

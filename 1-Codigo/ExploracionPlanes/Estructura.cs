@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Windows.Forms;
 using System.Collections.Generic;
@@ -41,37 +42,70 @@ namespace ExploracionPlanes
             return null;
         }
 
-        // Distancia máxima de edición para sugerir/autoseleccionar un matcheo aproximado.
-        public const int DistanciaMaximaSugerida = 3;
+        // Distancia máxima de edición para sugerir/autoseleccionar un matcheo aproximado. Subida de
+        // 3 a 4 junto con el peso de sustitución de abajo, para mantener aprox. la misma generosidad
+        // de auto-match que antes (2 sustituciones ya no entraban en 3 con el nuevo peso).
+        public const int DistanciaMaximaSugerida = 4;
+
+        // Una sustitución (letra por otra) pesa más que una inserción/borrado: un nombre que es el
+        // slot buscado MÁS caracteres agregados (p.ej. "PTV" -> "PTV_1mm") debe ordenar mejor que uno
+        // de la misma longitud pero con letras distintas (p.ej. "PTV" -> "Skin"), aunque la distancia
+        // sin pesar diera igual. Pedido por el usuario: priorizar adiciones sobre reemplazos.
+        public const int CostoSustitucion = 2;
+        public const int CostoInsercionOBorrado = 1;
 
         public static int DistanciaDamerauLevenshtein(string a, string b)
         {
             a = (a ?? "").ToLowerInvariant();
             b = (b ?? "").ToLowerInvariant();
             int[,] d = new int[a.Length + 1, b.Length + 1];
-            for (int i = 0; i <= a.Length; i++) d[i, 0] = i;
-            for (int j = 0; j <= b.Length; j++) d[0, j] = j;
+            for (int i = 0; i <= a.Length; i++) d[i, 0] = i * CostoInsercionOBorrado;
+            for (int j = 0; j <= b.Length; j++) d[0, j] = j * CostoInsercionOBorrado;
             for (int i = 1; i <= a.Length; i++)
             {
                 for (int j = 1; j <= b.Length; j++)
                 {
-                    int costo = a[i - 1] == b[j - 1] ? 0 : 1;
-                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + 1, d[i, j - 1] + 1), d[i - 1, j - 1] + costo);
+                    int costoSustitucion = a[i - 1] == b[j - 1] ? 0 : CostoSustitucion;
+                    d[i, j] = Math.Min(Math.Min(d[i - 1, j] + CostoInsercionOBorrado, d[i, j - 1] + CostoInsercionOBorrado), d[i - 1, j - 1] + costoSustitucion);
                     if (i > 1 && j > 1 && a[i - 1] == b[j - 2] && a[i - 2] == b[j - 1])
                     {
-                        d[i, j] = Math.Min(d[i, j], d[i - 2, j - 2] + costo);
+                        // La transposición (típicamente un typo de tipeo, "5400"/"5040") se mantiene
+                        // barata como el borrado/inserción, no tan cara como una sustitución real.
+                        d[i, j] = Math.Min(d[i, j], d[i - 2, j - 2] + CostoInsercionOBorrado);
                     }
                 }
             }
             return d[a.Length, b.Length];
         }
 
+        // Sufijos clínicos típicos (margen "_PRV", tamaño "_1mm", numeración "PTV05"/"PTV_2") que no
+        // cambian de qué órgano/volumen se trata. Pedido del usuario: "PTV" debe reconocer "PTV05" o
+        // "PTV_1mm" como si fueran el mismo nombre, y "Bladder" reconocer "Bladder_PRV2" igual.
+        private static readonly System.Text.RegularExpressions.Regex sufijosClinicos =
+            new System.Text.RegularExpressions.Regex(@"prv|mm|\d+", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        public static string nucleoNombreClinico(string nombre)
+        {
+            return sufijosClinicos.Replace(nombre ?? "", "").Replace("_", "").Trim();
+        }
+
         // Estructuras del plan ordenadas de más a menos parecida a alguno de los nombresPosibles (menor distancia primero).
+        // Se ordena primero por el "núcleo" del nombre (sin sufijos clínicos): un candidato con el
+        // mismo núcleo (p.ej. "PTV" y "PTV_1mm") va antes que uno de núcleo distinto aunque letra por
+        // letra esté más cerca (p.ej. "GTV"). La distancia completa solo desempata entre candidatos
+        // de igual núcleo.
         public static List<Tuple<Structure, int>> candidatosPorDistancia(List<string> listaNombres, List<Structure> listaEstructura)
         {
             return listaEstructura
-                .Select(s => new Tuple<Structure, int>(s, listaNombres.Min(n => DistanciaDamerauLevenshtein(n, s.Id))))
-                .OrderBy(t => t.Item2)
+                .Select(s => new
+                {
+                    Estructura = s,
+                    DistanciaNucleo = listaNombres.Min(n => DistanciaDamerauLevenshtein(nucleoNombreClinico(n), nucleoNombreClinico(s.Id))),
+                    DistanciaCompleta = listaNombres.Min(n => DistanciaDamerauLevenshtein(n, s.Id))
+                })
+                .OrderBy(x => x.DistanciaNucleo)
+                .ThenBy(x => x.DistanciaCompleta)
+                .Select(x => new Tuple<Structure, int>(x.Estructura, x.DistanciaNucleo))
                 .ToList();
         }
 
@@ -140,19 +174,6 @@ namespace ExploracionPlanes
             }
         }
 
-        public static List<Structure> ptvs(PlanningItem plan)
-        {
-            List<Structure> PTVs = new List<Structure>();
-            foreach (Structure estructura in listaEstructuras(plan))
-            {
-                if (estructura.DicomType == "PTV")
-                {
-                    PTVs.Add(estructura);
-                }
-            }
-            return PTVs;
-        }
-
         private static string[] _alfaBetaLineas;
 
         public static double AlfaBeta(string nombre)
@@ -171,7 +192,18 @@ namespace ExploracionPlanes
                 }
             }
             string coincidencia = _alfaBetaLineas.FirstOrDefault(s => nombre.Contains(s.Split('\t')[0]));
-            return coincidencia == null ? 3 : Convert.ToDouble(coincidencia.Split('\t')[1]);
+            if (coincidencia == null)
+            {
+                return 3;
+            }
+            // ponytail: InvariantCulture (igual que DesdeCSV.Dbl) — alfaBeta.txt es un archivo de
+            // configuración de texto plano, no debe depender de la cultura del hilo actual.
+            if (!double.TryParse(coincidencia.Split('\t')[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double alfaBeta))
+            {
+                MessageBox.Show("Valor de alfa/beta inválido en alfaBeta.txt para \"" + nombre + "\", se va a usar el valor por defecto (3).");
+                return 3;
+            }
+            return alfaBeta;
         }
     }
 

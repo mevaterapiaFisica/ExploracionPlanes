@@ -32,11 +32,11 @@ namespace ExploracionPlanes
         public string EtiquetaRestriccionAnidada { get; set; }
         public string id { get; set; }
 
-        public double ValorObtenido(PlanningItem planActual, Structure ptv = null)
+        public double ValorObtenido(PlanningItem planActual, double volPTV = 0)
         {
             if (tipo == Tipo.VolPTV)
             {
-                return ptv.Volume;
+                return volPTV;
             }
             else if (tipo == Tipo.NumFx)
             {
@@ -48,7 +48,7 @@ namespace ExploracionPlanes
             }
         }
 
-        public bool CumpleCondicion(PlanningItem planActual, Structure ptv = null)
+        public bool CumpleCondicion(PlanningItem planActual, double volPTV = 0)
         {
             if (tipo == Tipo.SinCondicion ||  tipo == Tipo.CondicionaA || tipo == Tipo.CondicionadaPor)
             {
@@ -56,19 +56,19 @@ namespace ExploracionPlanes
             }
             if (operador==Operador.mayor_a)
             {
-                return (ValorObtenido(planActual,ptv) >= ValorEsperado);
+                return (ValorObtenido(planActual,volPTV) >= ValorEsperado);
             }
             else if (operador==Operador.menor_a)
             {
-                return (ValorObtenido(planActual, ptv) <= ValorEsperado);
+                return (ValorObtenido(planActual, volPTV) <= ValorEsperado);
             }
             else if (operador==Operador.entre)
             {
-                return (ValorObtenido(planActual, ptv) <= Math.Max(ValorEsperado,ValorEsperado2) && ValorObtenido(planActual, ptv) >= Math.Min(ValorEsperado, ValorEsperado2));
+                return (ValorObtenido(planActual, volPTV) <= Math.Max(ValorEsperado,ValorEsperado2) && ValorObtenido(planActual, volPTV) >= Math.Min(ValorEsperado, ValorEsperado2));
             }
             else //(operador == Operador.igual)
             {
-                return (ValorObtenido(planActual, ptv) == ValorEsperado);
+                return (ValorObtenido(planActual, volPTV) == ValorEsperado);
             }
         }
 

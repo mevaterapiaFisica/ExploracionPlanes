@@ -1,0 +1,321 @@
+Generado (real, DesdeCSV.cs de produccion): RC=74 restricciones, SBRT=552 restricciones
+
+########## RC ##########
+
+=== RC_1fx.txt (manual: 11 restricciones, generado fx=1: 13 restricciones) ===
+  Coinciden (estructura+tipo+valores): 10
+  Misma estructura+tipo, valores distintos: 0
+  Solo en manual (no generado): 1
+  Solo en generado (no manual): 3
+  SOLO-GENERADO  WholeBrain [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=12
+  SOLO-MANUAL    Healthy Brain [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=12
+  SOLO-GENERADO  Lens [RestriccionDosisMax]: esperado=1.5 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Orbit [RestriccionDosis]: esperado=8 tolerado=NaN correspondiente=0.1
+
+=== RC_3fx.txt (manual: 12 restricciones, generado fx=3: 11 restricciones) ===
+  Coinciden (estructura+tipo+valores): 11
+  Misma estructura+tipo, valores distintos: 0
+  Solo en manual (no generado): 1
+  Solo en generado (no manual): 0
+  SOLO-MANUAL    Healthy Brain [RestriccionVolumen]: esperado=16 tolerado=NaN correspondiente=24
+
+=== RC_5fx.txt (manual: 11 restricciones, generado fx=5: 10 restricciones) ===
+  Coinciden (estructura+tipo+valores): 10
+  Misma estructura+tipo, valores distintos: 0
+  Solo en manual (no generado): 1
+  Solo en generado (no manual): 0
+  SOLO-MANUAL    Healthy Brain [RestriccionVolumen]: esperado=20 tolerado=NaN correspondiente=20
+
+########## SBRT ##########
+
+=== SBRT_1fx.txt (manual: 70 restricciones, generado fx=1: 105 restricciones) ===
+  Coinciden (estructura+tipo+valores): 49
+  Misma estructura+tipo, valores distintos: 0
+  Solo en manual (no generado): 21
+  Solo en generado (no manual): 56
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=13.6 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=15 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosisMax]: esperado=16.4 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=31 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosisMax]: esperado=37 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=11.6 tolerado=NaN correspondiente=700
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=9.1 tolerado=NaN correspondiente=700
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=37 tolerado=NaN correspondiente=8
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=7.2 tolerado=NaN correspondiente=1500
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=7.2 tolerado=NaN correspondiente=950
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=10 tolerado=15 correspondiente=20
+  SOLO-MANUAL    Lungs [RestriccionDosisMedia]: esperado=8 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Trachea + large Bronchus_PRV [RestriccionDosis]: esperado=17.4 tolerado=NaN correspondiente=0.5
+  SOLO-GENERADO  Trachea + large Bronchus_PRV [RestriccionDosisMax]: esperado=20.2 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Jejunum/ileum_PRV [RestriccionDosis]: esperado=17.6 tolerado=NaN correspondiente=30
+  SOLO-MANUAL    Jejunum/ileum_PRV [RestriccionDosis]: esperado=15.4 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    Jejunum/ileum_PRV [RestriccionDosis]: esperado=11.9 tolerado=NaN correspondiente=5
+  SOLO-MANUAL    Jejunum/ileum_PRV [RestriccionDosisMax]: esperado=20 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Kidneys_PRV [RestriccionDosis]: esperado=9.5 tolerado=NaN correspondiente=200
+  SOLO-MANUAL    Kidneys_PRV [RestriccionDosis]: esperado=8.4 tolerado=NaN correspondiente=200
+  SOLO-MANUAL    Kidney_PRV [RestriccionVolumen]: esperado=33 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  CaudaEquina_PRV [RestriccionDosis]: esperado=14 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  CaudaEquina_PRV [RestriccionDosisMax]: esperado=16 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=14.4 tolerado=NaN correspondiente=5
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=16 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosisMax]: esperado=16 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Urethra_PRV [RestriccionDosisMax]: esperado=20 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.25 tolerado=1.4 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=9 tolerado=11 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.2 tolerado=1.3 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6.5 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=4.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=7.5 tolerado=9.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=31 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  GreatVessels [RestriccionDosisMax]: esperado=37 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Liver-GTV [RestriccionDosis]: esperado=11.6 tolerado=NaN correspondiente=700
+  SOLO-GENERADO  Liver-GTV [RestriccionDosis]: esperado=9.1 tolerado=NaN correspondiente=700
+  SOLO-GENERADO  Lung-ITV [RestriccionDosis]: esperado=7.2 tolerado=NaN correspondiente=1500
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=15 correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionDosis]: esperado=7.2 tolerado=NaN correspondiente=950
+  SOLO-GENERADO  Lung-ITV [RestriccionDosis]: esperado=8 tolerado=NaN correspondiente=37
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=5 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=6 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionDosisMedia]: esperado=8 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Spleen [RestriccionDosisMedia]: esperado=100 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  BileDuct [RestriccionDosisMax]: esperado=30 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  BileDuct [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  SmallBowell [RestriccionDosis]: esperado=17.6 tolerado=NaN correspondiente=30
+  SOLO-GENERADO  SmallBowell [RestriccionDosis]: esperado=15.4 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  SmallBowell [RestriccionDosis]: esperado=11.9 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  SmallBowell [RestriccionDosisMax]: esperado=20 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  RenalHilum-VascularTrunk [RestriccionDosis]: esperado=14 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  RenalCortex [RestriccionDosis]: esperado=9.5 tolerado=NaN correspondiente=200
+  SOLO-GENERADO  RenalCortex [RestriccionDosis]: esperado=8.4 tolerado=NaN correspondiente=200
+  SOLO-GENERADO  RenalCortex [RestriccionVolumen]: esperado=33 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=14.4 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=16 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=14.4 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosisMax]: esperado=16 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=14.4 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=16 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=14.4 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosisMax]: esperado=16 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  PenileBulb [RestriccionDosis]: esperado=16 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Urethra_PRV [RestriccionDosis]: esperado=100 tolerado=NaN correspondiente=0.1
+
+=== SBRT_3fx.txt (manual: 76 restricciones, generado fx=3: 111 restricciones) ===
+  Coinciden (estructura+tipo+valores): 57
+  Misma estructura+tipo, valores distintos: 2
+  Solo en manual (no generado): 17
+  Solo en generado (no manual): 54
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=22 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=24 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosisMax]: esperado=26 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=39 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=45 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosisMax]: esperado=45 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=17.7 tolerado=NaN correspondiente=700
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=15 tolerado=17 correspondiente=700
+  SOLO-MANUAL    Liver [RestriccionDosisMedia]: esperado=13 tolerado=15 correspondiente=0
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=37 tolerado=NaN correspondiente=11.4
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=10.8 tolerado=NaN correspondiente=1500
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=10.8 tolerado=NaN correspondiente=950
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=10 tolerado=15 correspondiente=20
+  SOLO-MANUAL    Lungs [RestriccionDosisMedia]: esperado=8 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Trachea + large Bronchus_PRV [RestriccionDosis]: esperado=25.8 tolerado=NaN correspondiente=0.5
+  SOLO-GENERADO  Trachea + large Bronchus_PRV [RestriccionDosisMax]: esperado=30 tolerado=NaN correspondiente=0
+  VALOR-DISTINTO Ureter_PRV [RestriccionDosisMax]: manual(esp=45,tol=NaN,corr=0) vs generado(candidatos: [RestriccionDosisMax] esp=40,tol=NaN,corr=0)
+  SOLO-GENERADO  Ureter_PRV [RestriccionDosisMax]: esperado=40 tolerado=NaN correspondiente=0
+  VALOR-DISTINTO Kidneys_PRV [RestriccionDosis]: manual(esp=14.7,tol=NaN,corr=200) vs generado(candidatos: [RestriccionDosis] esp=16,tol=NaN,corr=200 | [RestriccionVolumen] esp=33,tol=NaN,corr=10)
+  SOLO-GENERADO  Kidneys_PRV [RestriccionVolumen]: esperado=33 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    Kidney_PRV [RestriccionVolumen]: esperado=33 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=22.5 tolerado=NaN correspondiente=5
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=24 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=22.5 tolerado=NaN correspondiente=5
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosisMax]: esperado=25.5 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Urethra_PRV [RestriccionDosisMax]: esperado=20 tolerado=25 correspondiente=0
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.25 tolerado=1.4 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=9 tolerado=11 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.2 tolerado=1.3 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6.5 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=4.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=7.5 tolerado=9.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=39 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=45 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  GreatVessels [RestriccionDosisMax]: esperado=45 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Liver-GTV [RestriccionVolumenCritico]: esperado=700 tolerado=NaN correspondiente=17.7
+  SOLO-GENERADO  Liver-GTV [RestriccionDosis]: esperado=15 tolerado=17 correspondiente=700
+  SOLO-GENERADO  Liver-GTV [RestriccionDosisMedia]: esperado=13 tolerado=15 correspondiente=0
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=1500 tolerado=NaN correspondiente=10.8
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=950 tolerado=NaN correspondiente=10.8
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=37 tolerado=NaN correspondiente=11.4
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=15 correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=5 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=6 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionDosisMedia]: esperado=8 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Spleen [RestriccionDosisMedia]: esperado=100 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  BileDuct [RestriccionDosisMax]: esperado=36 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  BileDuct [RestriccionDosis]: esperado=50 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  RenalHilum-VascularTrunk [RestriccionDosis]: esperado=19.5 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  Kidneys_PRV [RestriccionVolumenCritico]: esperado=200 tolerado=NaN correspondiente=14.7
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=22.5 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=24 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=22.5 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosisMax]: esperado=25.5 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  PenileBulb [RestriccionDosis]: esperado=25 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Urethra_PRV [RestriccionDosis]: esperado=100 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosis]: esperado=24 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosis]: esperado=26 tolerado=30 correspondiente=0.1
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosisMax]: esperado=30 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=22.5 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=24 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=22.5 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosisMax]: esperado=25.5 tolerado=NaN correspondiente=0
+
+=== SBRT_5fx.txt (manual: 74 restricciones, generado fx=5: 111 restricciones) ===
+  Coinciden (estructura+tipo+valores): 56
+  Misma estructura+tipo, valores distintos: 0
+  Solo en manual (no generado): 18
+  Solo en generado (no manual): 55
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=27 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=30.5 tolerado=32 correspondiente=0.1
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosisMax]: esperado=32.5 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=47 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=53 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosisMax]: esperado=53 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=21.5 tolerado=NaN correspondiente=700
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=15 tolerado=NaN correspondiente=700
+  SOLO-MANUAL    Liver [RestriccionVolumen]: esperado=70 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    Liver [RestriccionDosisMedia]: esperado=13 tolerado=15.2 correspondiente=0
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=37 tolerado=NaN correspondiente=13.5
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=12.5 tolerado=NaN correspondiente=1500
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=12.5 tolerado=NaN correspondiente=950
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=10 tolerado=15 correspondiente=20
+  SOLO-MANUAL    Lungs [RestriccionDosisMedia]: esperado=8 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Trachea + large Bronchus_PRV [RestriccionDosis]: esperado=32 tolerado=NaN correspondiente=0.5
+  SOLO-GENERADO  Trachea + large Bronchus_PRV [RestriccionDosisMax]: esperado=40 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Kidneys_PRV [RestriccionVolumen]: esperado=10 tolerado=45 correspondiente=10
+  SOLO-MANUAL    Kidney_L_PRV [RestriccionVolumen]: esperado=10 tolerado=45 correspondiente=10
+  SOLO-MANUAL    Kidney_R_PRV [RestriccionVolumen]: esperado=10 tolerado=45 correspondiente=10
+  SOLO-GENERADO  FemurHeadNeck [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=5
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=32 tolerado=NaN correspondiente=0.1
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosisMax]: esperado=32 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Urethra_PRV [RestriccionDosisMax]: esperado=20 tolerado=25 correspondiente=0
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.25 tolerado=1.4 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=9 tolerado=11 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.2 tolerado=1.3 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6.5 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=4.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=7.5 tolerado=9.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=47 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=53 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  GreatVessels [RestriccionDosisMax]: esperado=53 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Liver-GTV [RestriccionVolumenCritico]: esperado=700 tolerado=NaN correspondiente=21.5
+  SOLO-GENERADO  Liver-GTV [RestriccionDosis]: esperado=15 tolerado=NaN correspondiente=700
+  SOLO-GENERADO  Liver-GTV [RestriccionVolumen]: esperado=70 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  Liver-GTV [RestriccionDosisMedia]: esperado=13 tolerado=15.2 correspondiente=0
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=1500 tolerado=NaN correspondiente=12.5
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=950 tolerado=NaN correspondiente=12.5
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=37 tolerado=NaN correspondiente=13.5
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=15 correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=5 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=6 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionDosisMedia]: esperado=8 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Spleen [RestriccionDosisMedia]: esperado=100 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  BileDuct [RestriccionDosisMax]: esperado=41 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  BileDuct [RestriccionDosis]: esperado=50 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  RenalHilum-VascularTrunk [RestriccionDosis]: esperado=23 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  Kidneys_PRV [RestriccionVolumenCritico]: esperado=200 tolerado=NaN correspondiente=17.5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=32 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosisMax]: esperado=32 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  PenileBulb [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Urethra_PRV [RestriccionDosis]: esperado=100 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosis]: esperado=32 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosis]: esperado=29 tolerado=38 correspondiente=0.1
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosisMax]: esperado=38 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=32 tolerado=NaN correspondiente=0.1
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosisMax]: esperado=32 tolerado=NaN correspondiente=0
+
+=== SBRT_15fx.txt (manual: 46 restricciones, generado fx=15: 73 restricciones) ===
+  Coinciden (estructura+tipo+valores): 37
+  Misma estructura+tipo, valores distintos: 0
+  Solo en manual (no generado): 9
+  Solo en generado (no manual): 36
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosis]: esperado=48 tolerado=NaN correspondiente=3
+  SOLO-GENERADO  Braquial_Plex_PRV [RestriccionDosisMax]: esperado=52.5 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosis]: esperado=57 tolerado=NaN correspondiente=10
+  SOLO-MANUAL    GreatVes_PRV [RestriccionDosisMax]: esperado=65 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    Liver [RestriccionDosis]: esperado=30 tolerado=NaN correspondiente=700
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=16.5 tolerado=NaN correspondiente=1500
+  SOLO-MANUAL    Lungs [RestriccionDosis]: esperado=16.5 tolerado=NaN correspondiente=950
+  SOLO-MANUAL    Lungs [RestriccionVolumen]: esperado=37 tolerado=NaN correspondiente=18
+  SOLO-MANUAL    Kidneys_PRV [RestriccionDosis]: esperado=24 tolerado=NaN correspondiente=200
+  SOLO-GENERADO  Bladder_PRV [RestriccionDosis]: esperado=26 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  Bladder_PRV [RestriccionDosisMax]: esperado=48 tolerado=NaN correspondiente=0
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosis]: esperado=40.5 tolerado=NaN correspondiente=5
+  SOLO-MANUAL    LumbSacPlex_PRV [RestriccionDosisMax]: esperado=48 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.25 tolerado=1.4 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=9 tolerado=11 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.2 tolerado=1.3 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6.5 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5 tolerado=7 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=1.15 tolerado=1.2 correspondiente=100
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=4.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=7.5 tolerado=9.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=6 tolerado=7.5 correspondiente=50
+  SOLO-GENERADO  PTV [RestriccionIndiceConformidad]: esperado=5.5 tolerado=6.5 correspondiente=50
+  SOLO-GENERADO  GreatVessels [RestriccionDosis]: esperado=57 tolerado=NaN correspondiente=10
+  SOLO-GENERADO  GreatVessels [RestriccionDosisMax]: esperado=65 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Liver-GTV [RestriccionVolumenCritico]: esperado=700 tolerado=NaN correspondiente=30
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=1500 tolerado=NaN correspondiente=16.5
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=950 tolerado=NaN correspondiente=16.5
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumenCritico]: esperado=37 tolerado=NaN correspondiente=18
+  SOLO-GENERADO  RenalHilum-VascularTrunk [RestriccionDosis]: esperado=37.5 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  Kidneys_PRV [RestriccionVolumenCritico]: esperado=200 tolerado=NaN correspondiente=24
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosis]: esperado=40.5 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_L [RestriccionDosisMax]: esperado=48 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=5 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=6 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Lung-ITV [RestriccionVolumen]: esperado=10 tolerado=NaN correspondiente=20
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosis]: esperado=42 tolerado=NaN correspondiente=15
+  SOLO-GENERADO  Pericardium_PRV [RestriccionDosisMax]: esperado=48.9 tolerado=NaN correspondiente=0
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosis]: esperado=40.5 tolerado=NaN correspondiente=5
+  SOLO-GENERADO  LumbSacPlex_R [RestriccionDosisMax]: esperado=48 tolerado=NaN correspondiente=0

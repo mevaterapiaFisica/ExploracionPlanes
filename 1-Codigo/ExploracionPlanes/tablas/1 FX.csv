@@ -1,0 +1,53 @@
+1 FRACTIONS ,,,,,,
+STRUCTURE,TIMMERMAN ,,,UK CONSORTIUM ,,
+,Volume (cm3),Volume max (Gy),Max point Dose (Gy) [0.035 cm3],METRIC,optimal,mandatory
+WholeBrain,,,,V12 Gy,10-15 cc,
+Brainstem_PRV02,<0.5,10,15,D0.035cc,10 Gy,15 Gy
+Lens,,,,D0.035cc,1.5 Gy,
+OpticPathway_PRV02,<0.2,8,10,D0.035cc,8 Gy,10 Gy
+Orbit,,,,D0.1cc,8 Gy,
+Cochlea_PRV02,,,9,Dmean,4 Gy,
+
+###
+
+Braquial Plex_L,<3,13.6,16.4,D0.1cc,,15 Gy
+Braquial Plex_R,<3,13.6,16.4,D0.1cc,,15 Gy
+Bronchus,<0.5,17.4,20.2,,,
+Esophagus,<5,20,24,D0.1cc,,15.4 Gy
+GreatVessels,<10,31,37,D0.1cc,,30 Gy
+Heart,<15,16,22,D0.1cc,,22 Gy
+Liver,700,11.6,,D700cc,,9.1 Gy
+Lungs,1500 H ,7.2,,V20Gy,10 %,15 %
+,950 M,7.2,,,,
+,37%,8,,DMed,8 Gy,
+Rib,<5,28,33,,,
+ChestWall,,,,D0.1cc,30 Gy,
+Skin,<10,25.5,27.5,D0.1cc,,26 Gy
+,,,,D10cc,,23 Gy
+SpinalCord_PRV02,<0.35,10,14,D0.035cc,12.4 Gy,14 Gy
+Trachea+LargeBronchus ,<4,27.5,30,D0.1cc,,20.2 Gy
+Stomach,<5,17.4,22,D0.1cc,,12.4 Gy
+,,,,D10cc,,11.2 Gy
+Spleen,,,,Dmean,,Report 
+BileDuct,,,30,D0.1cc,,30 Gy
+Duodenum,<5,17.4,22,D0.1cc,,12.4 Gy
+,,,,D10cc,,9 Gy
+SmallBowell,<30,17.6,20,D0.1cc,,15.4 Gy
+,,,,D5cc,,11.9 Gy
+Colon,<20,20.5,31,D0.1 cc,,18.4 Gy
+Ureter,,,35,D0.1cc,,35 Gy
+RenalHilum-VascularTrunk,15,14,,,,
+RenalCortex,200,9.5,,D200cc,,8.4 Gy
+,,,,V10Gy,,33%
+BladderWall,<15,12,25,D0.1 cc,,18.4 Gy
+CaudaEquina,<5,14,16,D0.035cc,,16 Gy
+,,,,D 5cc,,14 Gy
+FemurHeadNeck,<10,15,,D10cc,14 Gy,
+LumbSacPlex_L,<5,14.4,16,D0.1cc,16Gy,
+,,,,D5cc,14.4 Gy,
+LumbSacPlex_R,<5,14.4,16,D0.1cc,16Gy,
+,,,,D5cc,14.4 Gy,
+PenileBulb,<3,16,,,,
+Rectum,<3.5,30,33.7,D0.1cc,,18.4 Gy
+,<20,23,,,,
+Urethra,,,,D0.1cc,,Report

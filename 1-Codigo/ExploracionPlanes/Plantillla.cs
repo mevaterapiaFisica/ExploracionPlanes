@@ -21,6 +21,7 @@ namespace ExploracionPlanes
         public string nombre { get; set; }
         public string etiqueta { get; set; }
         public bool esParaExtraccion { get; set; }
+        public bool Visible { get; set; } = true;
         public BindingList<IRestriccion> listaRestricciones { get; set; }
         public string nota { get; set; }
         public string path { get; set; }
@@ -65,6 +66,12 @@ namespace ExploracionPlanes
         public void actualizarPath(string _nuevoPath)
         {
             path = _nuevoPath;
+            IO.writeObjectAsJson(path, this);
+        }
+
+        public void ActualizarVisible(bool visible)
+        {
+            Visible = visible;
             IO.writeObjectAsJson(path, this);
         }
 

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -36,8 +37,28 @@ namespace ExploracionPlanes
             {
                 new WindowInteropHelper(this).Owner = activo.Handle;
             }
+            else
+            {
+                // ponytail: desde que Main es WPF (ya no WinForms), ActiveForm siempre da null al
+                // abrir un diálogo desde ella — sin este fallback reaparece el freeze por falta de
+                // owner que este archivo ya arregló una vez (ver comentario de clase).
+                Window ventanaDueña = System.Windows.Application.Current?.Windows.OfType<Window>()
+                    .FirstOrDefault(w => w.IsActive)
+                    ?? System.Windows.Application.Current?.Windows.OfType<Window>().LastOrDefault(w => w != this);
+                if (ventanaDueña != null)
+                {
+                    new WindowInteropHelper(this).Owner = new WindowInteropHelper(ventanaDueña).Handle;
+                }
+            }
             Loaded += (s, e) => BuscarPrimerCampoDeTexto(this)?.Focus();
 
+            // WindowStyle por default (SingleBorderWindow) + WindowChrome con CaptionHeight=0 depende
+            // de que Windows tenga la composición de escritorio (DWM) activa para suprimir el chrome
+            // nativo - en un Citrix/RDP sin esa composición, la ventana volvía a mostrar la barra de
+            // título nativa (blanca, sin ícono ni texto) tapando la barra propia. WindowStyle=None saca
+            // el chrome nativo de forma incondicional, sin depender de composición; WindowChrome se
+            // sigue usando solo para el borde de resize.
+            WindowStyle = WindowStyle.None;
             Resources.MergedDictionaries.Add(TemaVentana);
             Template = (ControlTemplate)Resources["PlantillaVentanaDialogoWpf"];
             WindowChrome.SetWindowChrome(this, new WindowChrome
@@ -167,6 +188,14 @@ namespace ExploracionPlanes
                 }
             }
             return null;
+        }
+
+        // ponytail: helper para pasar una ventana WPF como owner de un Form/diálogo WinForms
+        // (ShowDialog(IWin32Window) no tiene overload que acepte un Window de WPF directamente).
+        public class OwnerWin32 : System.Windows.Forms.IWin32Window
+        {
+            public IntPtr Handle { get; }
+            public OwnerWin32(Window ventana) => Handle = new WindowInteropHelper(ventana).Handle;
         }
 
         private const string XamlTema = @"

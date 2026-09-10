@@ -405,10 +405,8 @@ decir, para no cambiar comportamiento observable sin que se pida.
    planes del anterior — mismo root cause que el punto 4 (el fallback a `curso` nulo) más el orden
    de `Items.Clear()` del punto 5; se resolvió con los mismos dos fixes.
 
-**Pendiente de ajuste fino de UI (no bloqueante, a pedido del usuario se deja para después)**: en la
-pantalla real con datos, tanto el panel de "Asociar estructuras" como el de "Analizar" quedan con
-espacio sobrante a la derecha (las columnas con `Width="Auto"` no llegan a ocupar todo el ancho
-asignado). Ajustar cuando se retome trabajo visual fino sobre Form2/Form2_DosPlanes.
+**Ajuste fino de UI retomado** (espacio sobrante a la derecha en "Asociar estructuras"/"Analizar")
+— ver "Form2: columna paciente colapsada en contexto + grillas autosize" más abajo.
 
 ### Form2_DosPlanes: COMPLETADO
 
@@ -533,3 +531,262 @@ de `ClosePatient`/`Dispose`, o si hay que evitar el login interactivo por comple
   médico mira más veces por día. Punto pendiente de accesibilidad para la migración: hoy el
   pass/fail se comunica solo por color (`ColorearAnalisis.cs`) — agregar ✓/✗ además del color para
   no depender solo de percepción de color en una decisión clínica.
+
+## Form2: columna paciente colapsada en contexto + grillas autosize (2026-09-08)
+
+Pedido del usuario: aprovechar que `Form2` ya es WPF para achicar la ventana. Maqueta previa
+acordada con el usuario en un canvas de diseño (dos vistas: apertura standalone vs. apertura desde
+contexto de Aria) antes de tocar código.
+
+Cambios en `Form2.xaml`/`Form2.xaml.cs`:
+- **Columna 1 (paciente/curso/plan) colapsada del todo cuando `hayContext=true`**: es el acceso más
+  frecuente en uso clínico (siempre viene desde el script de Aria) y esa columna nunca aporta nada
+  ahí — paciente/curso/plan ya vienen fijados. Se descartó una franja angosta con chevron para
+  reexpandirla (propuesta en la maqueta) porque el usuario aclaró que el único caso que sí necesita
+  la columna es el acceso standalone (desarrollo), donde igual arranca visible — no hace falta
+  ningún mecanismo de reexpandir en el flujo de contexto. Implementación: dos `ColumnDefinition`
+  nombradas (`ColPaciente`, `ColGapPaciente`) puestas en `Width=0` desde `prepararControlesContext()`
+  en vez de solo `IsEnabled=false` como antes.
+- **Anchos de columna `430`/`230` (Asociar estructuras/Ajustar prescripciones) y `*` (Analizar)
+  pasan a `Auto`**, y las filas de `Grid` que contienen cada `DataGrid` pasan de `*`/`220` fijo a
+  `Auto` — la ventana entera pasa de `Width="1650" Height="720"` fijos a
+  `SizeToContent="WidthAndHeight"`. Antes cada panel reservaba espacio fijo aunque tuviera pocas
+  filas (ver screenshots `2026-09-02`/`2026-09-07` en el pedido original: "Analizar" vacío ocupaba
+  medio ancho de ventana, "Asociar estructuras" dejaba un rectángulo blanco enorme debajo de la
+  última fila).
+- **Riesgo de la autosize vertical sin techo**: `DGV_Estructuras`/`DGV_Análisis` con `Grid.Row="Auto"`
+  crecerían sin límite con plantillas grandes (SBRT tiene ~519 restricciones — ver entrada
+  2026-09-07 de `Tests.md`), pudiendo superar la altura de pantalla. Se les puso `MaxHeight` en el
+  constructor (`SystemParameters.WorkArea.Height * 0.8`) — de ahí el `DataGrid` scrollea internamente
+  como ya hacía antes con la fila `*` fija.
+
+### Cómo se testeó
+
+Cambio puramente de layout XAML + una asignación de `GridLength`/`MaxHeight` en code-behind, sin
+lógica de negocio nueva que aislar como test de `Tests.md` (no hay algoritmo que comparar
+antes/después — es disposición de controles). Verificado que compila limpio con MSBuild
+(`ExploracionPlanes -> bin\Debug\ExploracionPlanes.dll`, mismos warnings preexistentes de
+arquitectura de referencias ESAPI, sin warnings nuevos).
+
+**Pendiente** (mismo patrón de round-trip de todo `UI.md`, ver §4): no hay forma de verificar
+visualmente desde esta sesión que `SizeToContent`/`Auto` rindan como se espera con datos reales de
+Eclipse — falta screenshot del usuario (standalone y/o plugin) para confirmar. La maqueta de
+referencia (antes de implementar) quedó publicada como Artifact y acordada con el usuario en el
+chat de esta sesión.
+
+**Mismo cambio aplicado a `Form2_DosPlanes`** (idéntica estructura de columnas/grillas que `Form2`):
+`ColPaciente`/`ColGapPaciente` a `Width=0` en `prepararControlesContext()`, columnas 430/230/`*` →
+`Auto`, filas de grilla `*`/`220` fijo → `Auto`, ventana → `SizeToContent="WidthAndHeight"`,
+`MaxHeight` (80% work area) en `DGV_Estructuras`/`DGV_Analisis`. Build limpio. Mismo pendiente de
+verificación visual.
+
+### Bug real encontrado por screenshot del usuario: ventana quedaba mucho más alta de lo esperado
+
+Screenshot `2026-09-08 12_31_13-RC - CIAMPA...`: con `context=true`, la ventana abría con un hueco
+en blanco de ~300px entre el contenido y la fila de botones inferior. Causa real: `Width=0` en
+`ColPaciente` **no alcanza para que el contenido deje de medirse** — `L_NombrePaciente` tiene
+`TextWrapping="Wrap"`, y con ancho de columna 0 WPF wrappea el nombre del paciente letra por letra
+(ancho de medición 0), infla su alto deseado a ~300px, y esa altura se filtra a la fila compartida
+`Grid.Row="1"` del layout general (una fila `Auto` toma el máximo de alto entre TODAS sus columnas,
+sin importar que una tenga ancho 0). El ancho quedaba bien (0px, invisible), pero el alto se colaba
+igual.
+
+Fix real: además de `Width=0` en la columna, colapsar la **visibilidad** del contenido
+(`label4.Visibility = Visibility.Collapsed`, y el `Grid` interno de la columna 1 con nuevo
+`x:Name="GridColumnaPaciente"` también `Collapsed`) — un elemento `Collapsed` no se mide en absoluto,
+así que el wrap a ancho 0 nunca ocurre. Aplicado en `Form2` y `Form2_DosPlanes` (mismo bug, mismo
+origen: ambos formularios comparten esta estructura de columnas). Build limpio. Sigue pendiente
+confirmación visual del usuario sobre este fix puntual.
+
+## `Main`: ventana de chequeos migrada a WPF + selección de plantilla visible (2026-09-08)
+
+Dos pedidos del usuario, aplicados junto con el fix de altura de arriba (los tres a confirmar juntos
+en la próxima ronda de screenshots):
+
+### 1) Ventana de chequeos: `MessageBox.Show` nativo → `FormChequeos` (WPF, chrome de `DialogoWpf`)
+
+`Main.xaml.cs` mostraba el resultado de `Chequeos.chequeos(...)` con `MessageBox.Show(texto,
+"Chequeos en plan actual")` (2 call sites: plan simple y plan suma) — ventana nativa de Windows, sin
+la paleta/chrome ya migrados al resto de la app. Nuevo `FormChequeos.xaml`/`.xaml.cs` (mismo patrón
+que `FormTB`: `DialogoWpf`, `SizeToContent="Height"`, `ToolWindow`/`NoResize`), con el texto en un
+`TextBlock` con `TextWrapping="Wrap"` dentro de un `ScrollViewer` (`MaxHeight=500`, por si algún plan
+dispara muchos chequeos a la vez) y un botón "Aceptar". Mismo contenido y comportamiento que antes
+(si `texto==""` muestra "Todo bien"), solo cambia el chrome. Los otros 2 `MessageBox.Show` de `Main`
+("Debe abrir un paciente"/"Debe seleccionar un plan") quedaron sin tocar — no son la "ventana de
+chequeos", son errores de flujo puntuales.
+
+### 2) `LB_Plantillas`: preselección automática no quedaba visible
+
+La plantilla se preseleccionaba bien (`SelectedIndex = indice`) pero si caía fuera del área visible
+de la lista (plantillas al final) el usuario tenía que scrollear a mano para verla, y aunque estuviera
+a la vista, WPF pinta la selección de un `ListBox` sin foco de teclado en gris clarito
+(`SystemColors.Control`) — casi invisible sobre el fondo `#F7F8FA`, por eso "no se nota" aunque esté
+seleccionada.
+
+Fix: (a) estilo `ListBoxItem` en `Main.xaml` que fuerza el mismo celeste de selección
+(`#C7D6F0`/`#1B2A4A`) esté o no la ventana en foco, en vez del resaltado condicional por default de
+WPF; (b) `ScrollIntoView(SelectedItem)` + `Focus()` sobre `LB_Plantillas` después de fijar
+`SelectedIndex`, diferido a `Loaded` (no llamado directo en el constructor: la ventana todavía no se
+mostró en ese punto y `Focus()`/`ScrollIntoView` no siempre surten efecto ahí) — ver
+`enfocarPlantillaSeleccionada()`. `DialogoWpf` ya usa su propio `Loaded` para enfocar el primer
+`TextBox`/`PasswordBox` de la ventana; `Main` no tiene ninguno, así que no compite con este fix.
+
+Build limpio. **Pendiente**: los tres cambios (este + los dos de más arriba en `Form2`/
+`Form2_DosPlanes`) sin verificar visualmente desde esta sesión — falta screenshot del usuario.
+
+## Ronda de screenshots reales (2026-09-08): 3 fixes más
+
+`screenshots/Nuevas/`: `Form2 un plan`/`Form2 dos planes` confirman el fix de altura (ventana
+compacta, sin hueco). `Chequeo ok` confirma `FormChequeos`. Quedaron 3 cosas nuevas:
+
+### 1) `Form2_DosPlanes` sin "Ocultar no analizadas"
+
+Se había portado a `Form2` (§ ronda anterior de Fase 3) pero nunca a `Form2_DosPlanes`. Agregado
+igual: `CHB_OcultarNoAnalizadas` + `RowStyle`/`DataTrigger` sobre `Oculta` en `DGV_Analisis` (no
+existía, a diferencia de `Form2`) + `fila.Oculta = true` en `analizarRestriccion()` cuando no hay
+estructura asociada en plan1 y el checkbox está tildado.
+
+### 2) `Form2_DosPlanes`: matching de estructuras mejorado (combo sin ordenar + plan2 sin fallback)
+
+Ver detalle y test en `Tests.md` (2026-09-08) — cambio funcional, no solo de UI.
+
+### 3) Chrome roto en Citrix: `Main` mostraba la barra de título nativa de Windows (blanca, sin
+ícono ni texto) en vez de la propia (`#1B2A4A`)
+
+`screenshots/Nuevas/Main Citrix.png`: la ventana raíz abría con chrome nativo en vez del
+`ControlTemplate` compartido de `DialogoWpf` (Fase 5) — mismo bug que en el resto de la app, pero
+solo visible ahí en este screenshot. Causa probable: `WindowStyle` quedaba en su default
+(`SingleBorderWindow`); `WindowChrome` con `CaptionHeight=0` depende de que Windows tenga la
+composición de escritorio (DWM) activa para suprimir ese chrome nativo — en un Citrix/RDP sin esa
+composición (frecuente en sesiones remotas "básicas"), la supresión falla y Windows vuelve a dibujar
+su barra de título completa, tapando la nuestra.
+
+Fix real (en `DialogoWpf.cs`, un solo punto para las 14 ventanas): `WindowStyle = WindowStyle.None`
+en el constructor, ANTES de `Template`/`WindowChrome.SetWindowChrome`. A diferencia de
+`CaptionHeight=0` (que solo le pide a Windows que no reserve espacio para su caption, dependiente de
+composición), `WindowStyle=None` saca el chrome nativo de forma incondicional — no depende de DWM.
+Los diálogos chicos que declaran `WindowStyle="ToolWindow"` en su propio XAML (`FormTB`, etc.) no se
+ven afectados: ese valor se aplica en `InitializeComponent()`, que corre en el constructor del hijo
+DESPUÉS del constructor base, así que sigue pisando el `None` del padre igual que antes.
+
+No se pudo reproducir Citrix desde esta sesión (sin acceso a ese entorno) — el diagnóstico es por
+lectura de código + el patrón de bug documentado en Fase 5 (mismo síntoma exacto: barra nativa en vez
+de la propia). **Pendiente de confirmación real en Citrix.**
+
+### 4) `Main`: botones deshabilitados indistinguibles de los habilitados
+
+Maqueta con 2 direcciones (A: mismos tokens + disabled con gris real; B: botones sólidos navy +
+selección sólida) — el usuario eligió **A**. `BotonSecundario` en `Main.xaml` (único archivo tocado,
+cambio acotado a lo pedido) gana un `Style.Triggers` sobre `IsEnabled=False`:
+`Foreground=#9AA1AD`/`BorderBrush=#D5D9E0`/`Background=#F7F8FA` + `Cursor=Arrow`. Antes un botón
+deshabilitado se veía exactamente igual que uno habilitado (mismo borde/texto navy) - con el
+resaltado de selección ya arreglado, esto era lo que más "se veía mal" en la captura de Citrix: no
+se distinguía qué acción estaba realmente disponible.
+
+`BotonPrimario`/`BotonSecundario` están duplicados igual en `Form2`/`Form2_DosPlanes`/etc. (cada XAML
+tiene su propia copia de `Window.Resources`, no hay un diccionario compartido) y tienen el mismo
+problema de contraste en disabled — no se tocaron, el pedido fue puntual sobre `Main`. Si hace falta
+en el resto, es el mismo trigger copiado.
+
+Build limpio. Pendiente de confirmación visual en Citrix (junto con el resto de esta ronda).
+
+### Bug real encontrado por screenshot (2026-09-08, segunda vuelta): la selección seguía sin verse
+
+Con chrome y botones ya arreglados (confirmado por el usuario: se ven bien en Citrix), la fila
+seleccionada de `LB_Plantillas` seguía mostrándose como una barra sólida sin texto legible.
+
+Causa real: el `ControlTemplate` DEFAULT de `ListBoxItem` no lee `Background`/`Foreground` del
+`Style` para pintar la selección — tiene su propio `Border` interno atado a
+`SystemColors.HighlightBrushKey`/`HighlightTextBrushKey` vía `DynamicResource`, así que el
+`Style.Trigger` sobre `IsSelected` de la ronda anterior (`Background="#C7D6F0"`,
+`Foreground="#1B2A4A"`) nunca llegaba a pintar nada — WPF sigue usando el color de acento de
+Windows, no el nuestro. En este Citrix el tema tiene `Highlight`/`HighlightText` casi iguales entre
+sí (probablemente tema clásico/básico sin DWM, coherente con el bug de chrome de la ronda anterior),
+por eso la barra se veía sólida y sin texto legible.
+
+Fix real: reemplazar el `ControlTemplate` de `ListBoxItem` completo por uno propio (`Border` +
+`ContentPresenter`, triggers de `IsMouseOver`/`IsSelected` con colores literales `#E4EAF6`/`#C7D6F0`/
+`#1B2A4A`) en vez de un `Style.Setter` sobre propiedades que el template default ignora. Esto no
+depende de `SystemColors` ni del tema del host — pinta igual en cualquier Windows/Citrix. Mismo tipo
+de causa raíz que el bug de chrome (WPF confiando en comportamiento default de Windows que en este
+Citrix no se cumple). Build limpio. Pendiente de confirmación visual.
+
+## Replicado a las demás ventanas + fix de header recortado (2026-09-08, tercera vuelta)
+
+Confirmado por el usuario: chrome, botones deshabilitados y selección de `Main` ya se ven bien en
+Citrix. Dos pedidos más:
+
+### 1) Replicar el trigger de disabled y el `ListBoxItem` custom en el resto de las ventanas
+
+Cada ventana WPF tiene su PROPIA copia de `Window.Resources` (no hay `ResourceDictionary` compartido
+para `BotonPrimario`/`BotonSecundario` — cada XAML define los suyos, con paddings/márgenes propios
+distintos entre sí, ver p.ej. `Form1_prioridades` vs `Main`). Centralizar esos estilos en el
+`ResourceDictionary` compartido de `DialogoWpf` (donde vive el chrome) hubiera sido menos código,
+pero se descartó: cambiaría el aspecto de varias ventanas con valores hoy distintos entre sí sin que
+se pidiera ese rediseño — se replicó el mismo bloque (trigger `IsEnabled=False` + `ControlTemplate`
+de `ListBoxItem`) en cada XAML, igual que se armó para `Main`, sin tocar lo que cada ventana ya tenía
+particular.
+
+- Trigger de disabled en `BotonSecundario`: `Form2`, `Form2_DosPlanes`, `Form1_prioridades`, `FormTB`,
+  `Form_ListaRestricciones`, `FormConfiguracion`, `ImportarNombresEstructuras` (mismo bloque, texto
+  idéntico en las 7) y `PlantillaBlanco` (estructura de `BotonSecundario` levemente distinta ahí, sin
+  `BasedOn` — mismo trigger igual).
+- `ListBoxItem` custom (mismo por el mismo motivo que en `Main`: el template default con
+  `SystemColors` no se ve bien en este Citrix): `Form2`, `Form2_DosPlanes`, `Form1_prioridades`,
+  `Form_ListaRestricciones`, `ImportarNombresEstructuras`, `PlanesSumaContext`, `PlanesParaComparar`,
+  `SeleccionarPTV`.
+- `PlanesSumaContext`/`PlanesParaComparar`/`SeleccionarPTV` no tienen `BotonSecundario` (su único
+  botón, "Seleccionar", nunca se deshabilita) — solo se les agregó el `ListBoxItem`.
+
+Build limpio.
+
+### 2) `Form2`/`Form2_DosPlanes`: columna "Prescripción (Gy)" recortada a "P"
+
+`screenshots/Nuevas/Form2 un plan.png`: la columna de prescripción en "5. Ajustar prescripciones"
+tenía `Width="*"` — como el contenedor es angosto (grilla ajustada al contenido, ver la ronda del
+2026-09-08 de más arriba), `*` la dejaba con casi nada de ancho y el header se recortaba a una sola
+letra. Pedido puntual del usuario: ajustar al contenido Y acortar el texto del header. Cambiado en
+ambos formularios (mismo bug, misma columna duplicada): `Header="Prescripción (Gy)"` →
+`"Presc. [Gy]"`, `Width="*"` → `"Auto"`. Build limpio.
+
+Pendiente de siempre: confirmación visual de estos 2 puntos.
+
+## Form2/Form2_DosPlanes: la ventana crecía sin límite al Analizar plantillas grandes (2026-09-10)
+
+Screenshots del usuario (`Prostata_IMRT - YANG, HOI YOON`): con `SizeToContent="WidthAndHeight"`,
+la ventana arrancaba en un tamaño chico y prolijo (bien, eso funcionaba) pero al apretar "Analizar"
+con una plantilla de muchos constraints, `DGV_Análisis` pasaba a tener ~30 filas y la ventana entera
+crecía para acompañarlas — desbordando la pantalla (la barra de tareas tapaba el botón "Analizar").
+El `MaxHeight` puesto en la ronda anterior (`SystemParameters.WorkArea.Height * 0.8`, calculado en el
+constructor) no evitó esto — no se pudo confirmar por qué exactamente falló en este entorno (Citrix
+ya mostró antes ser poco fiable con valores dependientes del sistema, ver el bug de chrome/`DWM` más
+arriba), pero el enfoque en sí (techo dinámico según pantalla + `Grid.Row="Auto"` en todo) es fràgil.
+
+Pedido del usuario, con solución concreta propuesta por él mismo: arrancar en un tamaño vertical
+mayor, que sea fijo, y que al analizar la grilla NO agrande más la ventana sino que scrollee interna.
+Centrada en esa posición inicial.
+
+### Cambio de enfoque: alto fijo + filas `*` en vez de todo `Auto` + techo dinámico
+
+En `Form2.xaml`/`Form2_DosPlanes.xaml`:
+- `SizeToContent="WidthAndHeight"` → `SizeToContent="Width"` + `Height="850"` fijo. El ancho se
+  sigue ajustando solo al contenido (eso ya andaba bien - confirmado por el usuario en la ronda
+  anterior); el alto ahora es fijo y generoso desde el arranque, ya no depende de cuántas filas tenga
+  la plantilla. `WindowStartupLocation="CenterScreen"` (ya estaba) centra con este alto fijo + el
+  ancho final calculado.
+- La fila central del `Grid` principal (la que contiene las 4 columnas) vuelve de `Auto` a `*`, y las
+  filas que contienen `DGV_Estructuras`/`DGV_Análisis` dentro de sus columnas también vuelven de
+  `Auto` a `*` — ahora esas grillas llenan el espacio vertical disponible en la ventana YA FIJA (no
+  lo agrandan) y scrollean solas con lo que no entra (`DataGrid` ya trae su propio `ScrollViewer`).
+  La columna de "Ajustar prescripciones" (`DGV_Prescripciones`, normalmente pocas filas) se dejó
+  `Auto`/arriba, sin cambios.
+- Se sacó el `MaxHeight` calculado en el constructor (`Form2.xaml.cs`/`Form2_DosPlanes.xaml.cs`) —
+  ya no hace falta con alto de ventana fijo, y era el cálculo que no estaba funcionando bien acá.
+
+**Trade-off aceptado explícitamente por el usuario**: con plantillas chicas (pocos constraints) va a
+quedar espacio vacío abajo de las grillas en vez de una ventana perfectamente ajustada al contenido
+— es el precio de que la ventana nunca se desborde de la pantalla con plantillas grandes. Se prioriza
+"nunca desborda + scroll" sobre "siempre exactamente ajustada", a pedido explícito.
+
+Build limpio. Pendiente de confirmación visual (con una plantilla de pocos constraints Y una de
+muchos, para ver ambos extremos).

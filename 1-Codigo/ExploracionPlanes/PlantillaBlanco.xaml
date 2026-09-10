@@ -13,6 +13,14 @@
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#1B2A4A" />
             <Setter Property="Cursor" Value="Hand" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#9AA1AD" />
+                    <Setter Property="BorderBrush" Value="#D5D9E0" />
+                    <Setter Property="Background" Value="#F7F8FA" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
         <Style TargetType="DataGridColumnHeader">
             <Setter Property="Background" Value="#1B2A4A" />
@@ -30,6 +38,8 @@
     <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="*" />
+            <RowDefinition Height="12" />
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="12" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
@@ -51,7 +61,20 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+        <StackPanel x:Name="SP_Filtros" Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Center">
+            <StackPanel x:Name="SP_FiltroNumFx" Orientation="Vertical" Margin="0,0,20,0">
+                <TextBlock Text="Filtrar por número de fracciones" FontWeight="SemiBold" Margin="0,0,0,4" />
+                <ComboBox x:Name="CB_FiltroNumFx" Width="180"
+                          SelectionChanged="CB_Filtro_SelectionChanged" />
+            </StackPanel>
+            <StackPanel x:Name="SP_FiltroVolPTV" Orientation="Vertical">
+                <TextBlock Text="Filtrar por volumen de PTV" FontWeight="SemiBold" Margin="0,0,0,4" />
+                <ComboBox x:Name="CB_FiltroVolPTV" Width="180"
+                          SelectionChanged="CB_Filtro_SelectionChanged" />
+            </StackPanel>
+        </StackPanel>
+
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Center">
             <Button x:Name="BT_GuardarReporte" Content="Guardar como PDF" Style="{StaticResource BotonSecundario}" Margin="0,0,12,0" Click="BT_GuardarReporte_Click" />
             <Button x:Name="BT_Imprimir" Content="Imprimir" Style="{StaticResource BotonSecundario}" Click="BT_Imprimir_Click" />
         </StackPanel>

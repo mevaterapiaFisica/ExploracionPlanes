@@ -18,14 +18,18 @@ namespace ExploracionPlanes
         /// <returns>the volume in the same units as the DVH point array</returns>
         public static double GetVolumeAtDose(this DVHPoint[] dvh, DoseValue dv)
         {
-            var curve = dvh.Select(d => new { Dose = d.DoseValue.Dose, d.Volume, d.VolumeUnit });
+            // ponytail: sin esto, Max/Min sobre una curva vacía tira InvalidOperationException en vez
+            // de reportarse como dato faltante (igual que el resto del código trata sampling incompleto).
+            if (dvh == null || dvh.Length == 0) return double.NaN;
+            // ponytail: .ToList() una sola vez — antes cada Max/Min/First/Last re-evaluaba el Select.
+            var curve = dvh.Select(d => new { Dose = d.DoseValue.Dose, d.Volume, d.VolumeUnit }).ToList();
             var maxDose = curve.Max(d => d.Dose);
             var minDose = curve.Min(d => d.Dose);
 
             //If the max dose is less than the queried dose, then there is no volume at the queried dose (out of range)
             //If the min dose is greater than the queried dose, then 100% of the volume is at the queried dose
             if (dv.Dose >= maxDose) return 0;
-            if (dv.Dose < minDose) { return dvh.Max(d => d.Volume); }
+            if (dv.Dose < minDose) { return curve.Max(d => d.Volume); }
 
             var higherPoint = curve.First(p => p.Dose > dv.Dose);
             var lowerPoint = curve.Last(p => p.Dose <= dv.Dose);
@@ -35,6 +39,7 @@ namespace ExploracionPlanes
 
         public static DoseValue GetDoseAtVolume(this DVHPoint[] dvh, double volume)
         {
+            if (dvh == null || dvh.Length == 0) return DoseValue.UndefinedDose();
             var minVol = dvh.Min(d => d.Volume);
             var maxVol = dvh.Max(d => d.Volume);
 
@@ -116,7 +121,9 @@ namespace ExploracionPlanes
             double z;
             if (x == x1) { z = z1; }
             else if (x == x2) { z = z2; }
-
+            // ponytail: x1==x2 (tramo plano de la DVH) haría z = z1 + 0/0 * ... -> NaN/Infinity en vez
+            // de un valor definido; con la curva plana, z1 y z2 ya son la misma "meseta".
+            else if (x2 == x1) { z = z1; }
             else { z = z1 + (z2 - z1) / (x2 - x1) * (x - x1); }
             return z;
         }

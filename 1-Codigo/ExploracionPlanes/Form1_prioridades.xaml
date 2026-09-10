@@ -19,6 +19,35 @@
             <Setter Property="Foreground" Value="#1B2A4A" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#1B2A4A" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#9AA1AD" />
+                    <Setter Property="BorderBrush" Value="#D5D9E0" />
+                    <Setter Property="Background" Value="#F7F8FA" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+        <Style TargetType="ListBoxItem">
+            <Setter Property="Padding" Value="6,3" />
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border x:Name="Fondo" Background="Transparent" Padding="{TemplateBinding Padding}" SnapsToDevicePixels="True">
+                            <ContentPresenter />
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Fondo" Property="Background" Value="#E4EAF6" />
+                            </Trigger>
+                            <Trigger Property="IsSelected" Value="True">
+                                <Setter TargetName="Fondo" Property="Background" Value="#C7D6F0" />
+                                <Setter Property="Foreground" Value="#1B2A4A" />
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
         </Style>
         <Style TargetType="GroupBox">
             <Setter Property="Margin" Value="0,0,0,10" />
@@ -87,6 +116,7 @@
                         <ComboBoxItem Content="Dmax" />
                         <ComboBoxItem Content="Volumen" />
                         <ComboBoxItem Content="IC" />
+                        <ComboBoxItem Content="Volumen crítico" />
                     </ComboBox>
                 </StackPanel>
                 <Border x:Name="Panel_esMenorque" Grid.Row="2" Grid.Column="2">

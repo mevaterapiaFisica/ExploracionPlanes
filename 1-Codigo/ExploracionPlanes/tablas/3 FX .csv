@@ -1,0 +1,56 @@
+3 FRACTIONS ,,,,,,
+STRUCTURE,TIMMERMAN ,,,UK CONSORTIUM ,,
+,Volume (cm3),Volume max (Gy),Max point Dose (Gy) [0.035 cm3],METRIC,optimal,mandatory
+BRAIN* (including targets),,,,*V18 Gy,<30 cc,
+,,,,V20 Gy,20 cc,
+Brainstem (not medulla),<0.5,15.9,23.1,D0.035cc,18 Gy,23.1 Gy
+Lens,,,,,,
+OpticPathway,<0.2,15.3,17.4,D0.035cc,15 Gy,20 Gy
+Orbit,,,,,,
+Cochlea,,,14.4,Dmean,17.1 Gy,
+
+###
+
+Braquial Plex,<3,22,26,D0.1cc,,24 Gy
+"Bronchus, smaller airways ",<0.5,25.8,30,,,
+Esophagus,<5,27.9,32.4,D0.1cc,,25.2 Gy
+GreatVes,<10,39,45,D0.1cc,,45 Gy
+Heart/Pericardium,<15,24,30,D0.1cc,26 Gy,30 Gy
+Liver ,CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),,,,
+,700,17.7,,D700cc,15 Gy,17 Gy
+,,,,D Med,13 Gy,15 Gy
+Lungs (Der e izq ),CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),,,,
+,1500 (H)/950 (M),10.8,,V20Gy,10 %,15%
+,37%,11.4,,DMed,8 Gy,
+Rib,<5,40,50,,,
+"ChestWall",,,,D0.1cc,36.9 Gy,
+,,,,D30cc,30 Gy,
+Skin,<10,31,33,D0.1cc,33 Gy,
+,,,,D10cc,30 Gy,
+SpinalCord and medulla,<0.35,15.9,22.5,D0.035cc,,20.3 Gy
+Trachea + large Bronchus ,<5,39,43,D0.1cc,,30 Gy
+Stomach,<5,22.5,30,D0.1cc,,22.2 Gy
+,,,,D10cc,,16.5 Gy
+Spleen,,,,Dmean,,Report 
+Bile duct,,,36,D0.1cc,50 Gy,
+Duodenum,<5,22.5,30,D0.1cc,,22.2 Gy
+,,,,D10cc,,11.4 Gy
+Jejunum/ileum,<30,20.7,28.5,D0.1cc,,25.2 Gy
+,,,,D5cc,,17.7 Gy
+Colon,<20,28.8,45,D0.1cc,,28.2 Gy
+Ureter,,,40,D0.1cc,,40 Gy
+Renal hilum/vascular trunk,15,19.5,,,,
+Renal cortex (right and left),CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),,,,
+,200,14.7,,Dmean,8.5 Gy,
+,,,,D200cc,,16 Gy
+,,,,V10Gy,,33%
+Bladder Wall (with urine),<15,17,33,D0.1 cc,,28.2 Gy
+CaudaEquina,<5,21.9,25.5,D0.035cc,,24 Gy
+,,,,D 5cc,,21.9 Gy
+FemurHeadNeck,<10,24,,D10cc,21.9 Gy,
+LumbSacPlex,<5,22.5,25.5,D0.1cc,24 Gy,
+,,,,D5cc,22.5 Gy,
+Penile Bulb,<3,25,,,,
+Rectum,<3.5,43,47,D0.1cc,,28.2 Gy
+,<20,30.3,,,,
+Urethra,,,,D0.1cc,,Report

@@ -19,8 +19,6 @@ namespace ExploracionPlanes
         private Brush fondoEnPlan2 = Brushes.Transparent;
         private Brush fondoMetrica = Brushes.Transparent;
         private bool oculta;
-        private bool esDmax;
-        private string volumenDmaxTexto;
 
         public string Estructura { get => estructura; set => Set(ref estructura, value); }
         public string Prioridad { get => prioridad; set => Set(ref prioridad, value); }
@@ -35,18 +33,11 @@ namespace ExploracionPlanes
         // Solo usados por Form2/Form2_DosPlanes (análisis real de un plan); PlantillaBlanco no los toca.
         public Brush FondoEnPlan { get => fondoEnPlan; set => Set(ref fondoEnPlan, value); }
         public Brush FondoEnPlan2 { get => fondoEnPlan2; set => Set(ref fondoEnPlan2, value); }
-        // ponytail: preserva un bug preexistente — al editar el volumen de Dmax por botón, el
-        // código original pinta la celda "Métrica" (Cells[2]) en vez de "En Plan" (Cells[4]).
-        // No se corrige acá; ver Tests.md/UI.md.
         public Brush FondoMetrica { get => fondoMetrica; set => Set(ref fondoMetrica, value); }
         public bool Oculta { get => oculta; set => Set(ref oculta, value); }
-        public bool EsDmax { get => esDmax; set => Set(ref esDmax, value); }
-        public string VolumenDmaxTexto { get => volumenDmaxTexto; set => Set(ref volumenDmaxTexto, value); }
 
-        // Referencia a la restricción real de esta fila — permite que el click de la columna de
-        // botón (Dmax) opere sobre el objeto correcto sin depender del índice visual de la fila
-        // (a diferencia del DataGridView original, que indexaba por posición y podía desalinearse
-        // si una restricción anterior no cumplía condición y no llegaba a agregarse a la grilla).
+        // Referencia a la restricción real de esta fila — evita indexar por posición visual, que se
+        // desalinea si una restricción anterior no cumple condición y no llega a agregarse a la grilla.
         public IRestriccion Restriccion { get; set; }
     }
 }

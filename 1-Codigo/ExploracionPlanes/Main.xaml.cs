@@ -57,18 +57,12 @@ namespace ExploracionPlanes
             if (hayContext && planContext != null)
             {
                 texto += Chequeos.chequeos(planContext, false);
-                if (texto != "")
-                {
-                    MessageBox.Show(texto, "Chequeos en plan actual");
-                }
-                else
-                {
-                    MessageBox.Show("Todo bien", "Chequeos en plan actual");
-                }
+                new FormChequeos(texto).ShowDialog();
                 Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
                 int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
                 LB_Plantillas.UnselectAll();
                 LB_Plantillas.SelectedIndex = indice;
+                enfocarPlantillaSeleccionada();
             }
             else if (hayContext && pacienteContext == null)
             {
@@ -82,19 +76,21 @@ namespace ExploracionPlanes
                     PlanesSumaContext planesSumaContext = new PlanesSumaContext(planSumsContext);
                     planesSumaContext.ShowDialog();
                     planContext = planesSumaContext.PlanSuma;
+                    // ponytail: este diálogo no tiene botón Cancelar — cerrarlo con la X (o cualquier
+                    // futuro cierre sin seleccionar) dejaba PlanSuma null y Chequeos.chequeos tiraba NRE.
+                    if (planContext == null)
+                    {
+                        MessageBox.Show("Debe seleccionar un plan suma");
+                        Close();
+                        return;
+                    }
                     texto += Chequeos.chequeos(planContext, true);
-                    if (texto != "")
-                    {
-                        MessageBox.Show(texto, "Chequeos en plan actual");
-                    }
-                    else
-                    {
-                        MessageBox.Show("Todo bien", "Chequeos en plan actual");
-                    }
+                    new FormChequeos(texto).ShowDialog();
                     Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
                     int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
                     LB_Plantillas.UnselectAll();
                     LB_Plantillas.SelectedIndex = indice;
+                    enfocarPlantillaSeleccionada();
                 }
                 else
                 {
@@ -102,6 +98,18 @@ namespace ExploracionPlanes
                     Close();
                 }
             }
+        }
+
+        // Preseleccionar la plantilla no alcanza para que se vea: si queda fuera del área visible
+        // (lista larga) hay que scrollear a mano, y en el constructor la ventana todavía no se
+        // mostró - Focus()/ScrollIntoView ahí no siempre surten efecto - se difiere a Loaded.
+        private void enfocarPlantillaSeleccionada()
+        {
+            Loaded += (s, e) =>
+            {
+                LB_Plantillas.ScrollIntoView(LB_Plantillas.SelectedItem);
+                LB_Plantillas.Focus();
+            };
         }
 
         private void BT_Nueva_Click(object sender, RoutedEventArgs e)
@@ -218,7 +226,7 @@ namespace ExploracionPlanes
         private void BT_AplicarPorLote_Click(object sender, RoutedEventArgs e)
         {
             aplicarPorLote = new Form3(plantillaSeleccionada());
-            aplicarPorLote.ShowDialog();
+            aplicarPorLote.ShowDialog(new DialogoWpf.OwnerWin32(this));
         }
 
         private void BT_Ver_Click(object sender, RoutedEventArgs e)
@@ -230,7 +238,35 @@ namespace ExploracionPlanes
         public void leerPlantillas()
         {
             LB_Plantillas.ItemsSource = null;
-            LB_Plantillas.ItemsSource = Plantilla.leerPlantillas();
+            List<Plantilla> plantillas = Plantilla.leerPlantillas();
+            if (CHB_MostrarOcultas.IsChecked != true)
+            {
+                plantillas = plantillas.Where(p => p.Visible).ToList();
+            }
+            if (!string.IsNullOrWhiteSpace(TB_FiltroPlantillas?.Text))
+            {
+                plantillas = plantillas.Where(p => p.etiqueta.IndexOf(TB_FiltroPlantillas.Text, StringComparison.OrdinalIgnoreCase) >= 0).ToList();
+            }
+            LB_Plantillas.ItemsSource = plantillas;
+        }
+
+        private void TB_FiltroPlantillas_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            leerPlantillas();
+        }
+
+        private void CHB_MostrarOcultas_Click(object sender, RoutedEventArgs e)
+        {
+            leerPlantillas();
+        }
+
+        private void BT_OcultarMostrar_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (Plantilla plantilla in LB_Plantillas.SelectedItems.Cast<Plantilla>().ToList())
+            {
+                plantilla.ActualizarVisible(!plantilla.Visible);
+            }
+            leerPlantillas();
         }
 
         private void LB_Plantillas_SelectedIndexChanged(object sender, SelectionChangedEventArgs e)
@@ -271,6 +307,12 @@ namespace ExploracionPlanes
                 BT_CompararPlanes.IsEnabled = true;
                 BT_AplicarPorLote.IsEnabled = false;
                 BT_ExtraerDePlantilla.IsEnabled = false;
+                BT_OcultarMostrar.IsEnabled = false;
+
+                // Desde contexto (Aria) solo se usan Aplicar/Comparar/Ver - las acciones de
+                // administración de plantillas no aportan y quedaban como pared de botones grises.
+                SeparadorAdmin.Visibility = Visibility.Collapsed;
+                PanelAdminPlantillas.Visibility = Visibility.Collapsed;
             }
             else
             {
@@ -281,6 +323,7 @@ namespace ExploracionPlanes
                 BT_Duplicar.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && editaPlantilla;
                 BT_Ver.IsEnabled = LB_Plantillas.SelectedItems.Count == 1;
                 BT_Eliminar.IsEnabled = LB_Plantillas.SelectedItems.Count > 0 && editaPlantilla;
+                BT_OcultarMostrar.IsEnabled = LB_Plantillas.SelectedItems.Count > 0;
                 BT_AplicarAUnPlan.IsEnabled = LB_Plantillas.SelectedItems.Count == 1 && !((Plantilla)LB_Plantillas.SelectedItems[0]).esParaExtraccion;
                 BT_AplicarPorLote.IsEnabled = LB_Plantillas.SelectedItems.Count == 1;
                 BT_Configuracion.IsEnabled = editaPlantilla;

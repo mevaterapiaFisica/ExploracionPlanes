@@ -11,6 +11,8 @@ namespace ExploracionPlanes
 {
     public static class Chequeos
     {
+        private static readonly Regex FormatoNombreCurso = new Regex(@"^C[0-9]_[a-zA-Z]{3}[0-9]{2}$");
+
         public static string camilla(PlanSetup plan)
         {
             bool noHayCamilla = true;
@@ -171,9 +173,8 @@ namespace ExploracionPlanes
         public static string estructuraNombreCursoCorrecta(PlanSetup plan)
         {
             string texto = "";
-            Regex estructura = new Regex(@"^C[0-9]_[a-zA-Z]{3}[0-9]{2}$");
             {
-                if (!estructura.IsMatch(plan.Course.Id))
+                if (!FormatoNombreCurso.IsMatch(plan.Course.Id))
                 {
                     texto += "\nRevisar el formato de nombre del curso (por ejemplo C0_Sep19)";
                 }

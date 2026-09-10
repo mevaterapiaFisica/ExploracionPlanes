@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
 using MigraDoc.DocumentObjectModel;
 using MigraDoc.Rendering;
 
@@ -12,13 +14,42 @@ namespace ExploracionPlanes
         Plantilla plantilla;
         ObservableCollection<FilaAnalisis> filas = new ObservableCollection<FilaAnalisis>();
 
+        private const string TODAS = "(Todas)";
+
         public PlantillaBlanco(Plantilla _plantilla)
         {
             InitializeComponent();
             plantilla = _plantilla;
             DGV_Analisis.ItemsSource = filas;
+            llenarFiltros();
             llenarAnalisis();
             Title = plantilla.nombre;
+        }
+
+        private void llenarFiltros()
+        {
+            llenarFiltro(CB_FiltroNumFx, SP_FiltroNumFx, Tipo.NumFx);
+            llenarFiltro(CB_FiltroVolPTV, SP_FiltroVolPTV, Tipo.VolPTV);
+        }
+
+        private void llenarFiltro(ComboBox comboBox, StackPanel contenedor, Tipo tipo)
+        {
+            var idsCondicion = plantilla.listaRestricciones
+                .Where(r => r.condicion != null && r.condicion.tipo == tipo)
+                .Select(r => r.condicion)
+                .GroupBy(c => c.id)
+                .Select(g => g.First())
+                .OrderBy(c => Math.Min(c.ValorEsperado, double.IsNaN(c.ValorEsperado2) ? c.ValorEsperado : c.ValorEsperado2))
+                .Select(c => c.id)
+                .ToList();
+            contenedor.Visibility = idsCondicion.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+            comboBox.ItemsSource = new[] { TODAS }.Concat(idsCondicion);
+            comboBox.SelectedItem = TODAS;
+        }
+
+        private void CB_Filtro_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            llenarAnalisis();
         }
 
         private void llenarAnalisis()
@@ -26,8 +57,19 @@ namespace ExploracionPlanes
             filas.Clear();
             Col_Prioridad.Visibility = plantilla.tienePrioridades() ? Visibility.Visible : Visibility.Collapsed;
 
+            string filtroNumFx = CB_FiltroNumFx.SelectedItem as string ?? TODAS;
+            string filtroVolPTV = CB_FiltroVolPTV.SelectedItem as string ?? TODAS;
+
             foreach (IRestriccion restriccion in plantilla.listaRestricciones)
             {
+                if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.NumFx && filtroNumFx != TODAS && restriccion.condicion.id != filtroNumFx)
+                {
+                    continue;
+                }
+                if (restriccion.condicion != null && restriccion.condicion.tipo == Tipo.VolPTV && filtroVolPTV != TODAS && restriccion.condicion.id != filtroVolPTV)
+                {
+                    continue;
+                }
                 var fila = new FilaAnalisis();
                 fila.Estructura = restriccion.estructura.nombre;
                 fila.Metrica = restriccion.metrica();

@@ -1,0 +1,43 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>disable</Nullable>
+    <!-- Codigo de produccion sin nullable annotations; no queremos warnings-como-nada raros -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\StubEsapi\StubEsapi.csproj" />
+  </ItemGroup>
+
+  <!-- Compila el codigo de produccion TAL CUAL (sin copiarlo/reimplementarlo) contra el stub de ESAPI.
+       DesdeCSV.GenerarPlantillasUnificadas nunca invoca los metodos que dependen de ESAPI real. -->
+  <ItemGroup>
+    <Compile Include="..\..\DesdeCSV.cs" Link="produccion\DesdeCSV.cs" />
+    <Compile Include="..\..\Plantillla.cs" Link="produccion\Plantillla.cs" />
+    <Compile Include="..\..\IRestriccion.cs" Link="produccion\IRestriccion.cs" />
+    <Compile Include="..\..\Condicion.cs" Link="produccion\Condicion.cs" />
+    <Compile Include="..\..\Estructura.cs" Link="produccion\Estructura.cs" />
+    <Compile Include="..\..\MemoriaPlan.cs" Link="produccion\MemoriaPlan.cs" />
+    <Compile Include="..\..\IO.cs" Link="produccion\IO.cs" />
+    <Compile Include="..\..\Configuracion.cs" Link="produccion\Configuracion.cs" />
+    <Compile Include="..\..\DatosEdicionRestriccion.cs" Link="produccion\DatosEdicionRestriccion.cs" />
+    <Compile Include="..\..\RestriccionDosis.cs" Link="produccion\RestriccionDosis.cs" />
+    <Compile Include="..\..\RestriccionDosisMax.cs" Link="produccion\RestriccionDosisMax.cs" />
+    <Compile Include="..\..\RestriccionDosisMedia.cs" Link="produccion\RestriccionDosisMedia.cs" />
+    <Compile Include="..\..\RestriccionVolumen.cs" Link="produccion\RestriccionVolumen.cs" />
+    <Compile Include="..\..\RestriccionIndiceConformidad.cs" Link="produccion\RestriccionIndiceConformidad.cs" />
+    <Compile Include="..\..\RestriccionVolumenCritico.cs" Link="produccion\RestriccionVolumenCritico.cs" />
+    <Compile Include="..\..\Metodos.cs" Link="produccion\Metodos.cs" />
+    <Compile Include="..\..\DVHDataExtensions_ESAPIX.cs" Link="produccion\DVHDataExtensions_ESAPIX.cs" />
+    <Compile Include="..\..\EQD2.cs" Link="produccion\EQD2.cs" />
+  </ItemGroup>
+
+</Project>

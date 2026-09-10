@@ -16,10 +16,13 @@ namespace ExploracionPlanes
 
         public static double validarYConvertirADouble(string entrada)
         {
+            // ponytail: NumberStyles.Float (sin AllowThousands, a diferencia del TryParse(string, out)
+            // por default) — con miles permitido, "45.0" bajo cultura de coma decimal se leía como 450
+            // en vez de fallar o interpretarse como decimal.
             CultureInfo alternative = (CultureInfo)CultureInfo.CurrentCulture.Clone();
             alternative.NumberFormat.NumberDecimalSeparator = ",";
             bool esNumero; double salida = Double.NaN;
-            esNumero = Double.TryParse(entrada, out salida);
+            esNumero = Double.TryParse(entrada, NumberStyles.Float, CultureInfo.CurrentCulture, out salida);
             if (!esNumero)
             {
                 esNumero = Double.TryParse(entrada, NumberStyles.Float, alternative, out salida);

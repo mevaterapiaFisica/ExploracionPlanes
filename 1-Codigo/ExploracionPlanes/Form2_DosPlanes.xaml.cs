@@ -6,6 +6,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using MigraDoc.DocumentObjectModel;
@@ -23,7 +24,7 @@ namespace ExploracionPlanes
         User usuario;
         Plantilla plantilla;
         bool hayContext = false;
-        Structure ptvCondicion;
+        string tituloBase;
         VMS.TPS.Common.Model.API.Application app;
 
         ObservableCollection<FilaEstructura> filasEstructuras = new ObservableCollection<FilaEstructura>();
@@ -68,6 +69,7 @@ namespace ExploracionPlanes
                     MessageBox.Show("No se puede acceder a Eclipse.\n Compruebe que está en una PC con acceso al TPS");
                 }
             }
+            tituloBase = Title;
         }
 
         public bool abrirPaciente(string ID)
@@ -199,14 +201,18 @@ namespace ExploracionPlanes
         private void llenarDGVEstructuras()
         {
             filasEstructuras.Clear();
-            var todasLasOpciones = new List<string> { "" };
-            todasLasOpciones.AddRange(Estructura.listaEstructurasID(Estructura.listaEstructuras(planSeleccionado())));
+            List<Structure> estructurasPlan = Estructura.listaEstructuras(planSeleccionado());
             foreach (Estructura estructura in plantilla.estructuras())
             {
                 var fila = new FilaEstructura { NombreSlot = estructura.nombre };
-                foreach (string opcion in todasLasOpciones)
+                // Antes el combo listaba TODAS las estructuras del plan sin ordenar - con plantillas
+                // largas obligaba a buscar a mano. Se ordena por parecido (mismo criterio que Form2),
+                // "" primero para que el combo de una fila sin matchear arranque arriba.
+                var candidatos = Estructura.candidatosPorDistancia(estructura.nombresPosibles, estructurasPlan);
+                fila.Opciones.Add("");
+                foreach (var candidato in candidatos)
                 {
-                    fila.Opciones.Add(opcion);
+                    fila.Opciones.Add(candidato.Item1.Id);
                 }
                 filasEstructuras.Add(fila);
             }
@@ -257,35 +263,34 @@ namespace ExploracionPlanes
             }
         }
 
+        // El binding TwoWay de SelectedItem (ComboBox dentro de un DataGridTemplateColumn.CellTemplate
+        // sin CellEditingTemplate) no empuja el valor elegido de vuelta a StructureId - queda solo
+        // seleccionado visualmente. Se asigna a mano acá para que el match manual quede en el modelo.
+        private void ComboBoxStructureId_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (sender is ComboBox cb && cb.DataContext is FilaEstructura fila)
+            {
+                fila.StructureId = cb.SelectedItem as string ?? "";
+            }
+        }
+
         private void asociarEstructuras()
         {
             bool existeArchivoPar = File.Exists(Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
             List<parEstructura> lista = existeArchivoPar
                 ? Form2.leerArchivoParEstructura(Form2.nombreArchivoParEstructura(paciente, planSeleccionado()))
                 : new List<parEstructura>();
+            List<Structure> estructurasPlan = Estructura.listaEstructuras(planSeleccionado());
             for (int i = 0; i < filasEstructuras.Count; i++)
             {
                 var fila = filasEstructuras[i];
-                Structure estructura = Estructura.asociarConLista(plantilla.estructuras()[i].nombresPosibles, Estructura.listaEstructuras(planSeleccionado()));
-                if (estructura != null)
-                {
-                    fila.StructureId = estructura.Id;
-                }
-                else if (existeArchivoPar)
-                {
-                    string structureID = Form2.structureDeEstructura(fila.NombreSlot, lista);
-                    fila.StructureId = fila.Opciones.Contains(structureID) ? structureID : "";
-                }
-                else
-                {
-                    fila.StructureId = "";
-                }
+                List<string> nombresPosibles = plantilla.estructuras()[i].nombresPosibles;
+                string idExacto = Estructura.asociarConLista(nombresPosibles, estructurasPlan)?.Id;
+                string idMemoria = existeArchivoPar ? Form2.structureDeEstructura(fila.NombreSlot, lista) : "";
+                var candidatos = Estructura.candidatosPorDistancia(nombresPosibles, estructurasPlan);
+                var mejorCandidato = candidatos.Count > 0 ? Tuple.Create(candidatos[0].Item1.Id, candidatos[0].Item2) : null;
+                fila.StructureId = MatchingEstructuras.ElegirStructureId(idExacto, idMemoria, fila.Opciones, mejorCandidato);
             }
-        }
-
-        private bool estructurasSinAsociar()
-        {
-            return filasEstructuras.Any(f => string.IsNullOrEmpty(f.StructureId));
         }
 
         private void llenarDGVAnalisis()
@@ -318,19 +323,39 @@ namespace ExploracionPlanes
                 MessageBox.Show("Los planes están calculados sobre diferentes Set de estructuras\nSe obtendrá información respetando el nombre de las estructuras");
             }
             Col_Prioridad.Visibility = plantilla.tienePrioridades() ? Visibility.Visible : Visibility.Collapsed;
+            List<Structure> ptvsMatcheados = ptvsMatcheadosEnGrilla();
             if (plantilla.tieneCondicionesTipo1())
             {
-                SeleccionarPTV seleccionarPTV = new SeleccionarPTV(Estructura.ptvs(plan));
-                seleccionarPTV.ShowDialog();
-                ptvCondicion = seleccionarPTV.ptv;
+                string extra = "";
+                if (planSeleccionado() is PlanSetup planSetupTitulo)
+                {
+                    extra += " + " + (int)planSetupTitulo.UniqueFractionation.NumberOfFractions + " fx";
+                }
+                if (ptvsMatcheados.Count > 0)
+                {
+                    extra += " + PTV " + Math.Round(ptvsMatcheados.Sum(s => s.Volume), 1) + " cm3";
+                    if (ptvsMatcheados.Count > 1)
+                    {
+                        extra += " (" + ptvsMatcheados.Count + " PTVs)";
+                    }
+                }
+                Title = tituloBase + extra;
+            }
+            else
+            {
+                Title = tituloBase;
             }
             string notaEQD2 = "Se analizaron evaluando EQD2: ";
             List<string> estructurasConEQD2 = new List<string>();
             foreach (IRestriccion restriccion in plantilla.listaRestricciones)
             {
-                if (restriccion.condicion != null && !restriccion.condicion.CumpleCondicion(plan, ptvCondicion))
+                if (restriccion.condicion != null)
                 {
-                    continue;
+                    Structure estructuraCondicion = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
+                    if (!restriccion.condicion.CumpleCondicion(plan, volPTVParaCondicion(estructuraCondicion, ptvsMatcheados)))
+                    {
+                        continue;
+                    }
                 }
                 try
                 {
@@ -357,23 +382,23 @@ namespace ExploracionPlanes
                 L_Advertencia.Visibility = Visibility.Visible;
                 if (planMod != null)
                 {
-                    L_Advertencia.Text = "* Restricciones evaluadas en " + planMod.Id;
+                    L_Advertencia.Text = "⚠ Restricciones evaluadas en " + planMod.Id;
                     plantilla.nota += "\r\n* Restricciones evaluadas en " + planMod.Id;
                 }
                 else
                 {
-                    L_Advertencia.Text = "* Restricciones evaluadas en " + plan.Id;
+                    L_Advertencia.Text = "⚠ Restricciones evaluadas en " + plan.Id;
                 }
 
                 L_Advertencia2.Visibility = Visibility.Visible;
                 if (plan2Mod != null)
                 {
-                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2Mod.Id;
+                    L_Advertencia2.Text = "⚠ Restricciones evaluadas en " + plan2Mod.Id;
                     plantilla.nota += "\r\n* Restricciones evaluadas en " + plan2Mod.Id;
                 }
                 else
                 {
-                    L_Advertencia2.Text = "* Restricciones evaluadas en " + plan2.Id;
+                    L_Advertencia2.Text = "⚠ Restricciones evaluadas en " + plan2.Id;
                 }
             }
             else
@@ -390,6 +415,10 @@ namespace ExploracionPlanes
             Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
 
             var fila = new FilaAnalisis { Restriccion = restriccion };
+            if (estructura == null && CHB_OcultarNoAnalizadas.IsChecked == true)
+            {
+                fila.Oculta = true;
+            }
             filasAnalisis.Add(fila);
 
             fila.Estructura = Estructura.nombreEnDiccionario(restriccion.estructura);
@@ -498,12 +527,6 @@ namespace ExploracionPlanes
                         {
                             fila.FondoEnPlan2 = ColorearAnalisis.fondoWpf(restriccion);
                         }
-
-                        if (restriccion.GetType() == typeof(RestriccionDosisMax))
-                        {
-                            fila.EsDmax = true;
-                            fila.VolumenDmaxTexto = RestriccionDosisMax.volumenDosisMaxima.ToString();
-                        }
                     }
                 }
             }
@@ -521,13 +544,45 @@ namespace ExploracionPlanes
             return null;
         }
 
+        // Todos los PTVs reales del matcheo en "plan" (esta ventana no tiene duplicado de filas como
+        // Form2, pero puede haber más de un PTV en la plantilla). Reemplaza al diálogo "elegir PTV".
+        private List<Structure> ptvsMatcheadosEnGrilla()
+        {
+            List<Structure> estructurasPlan = Estructura.listaEstructuras(plan);
+            return filasEstructuras
+                .Where(f => !string.IsNullOrEmpty(f.StructureId))
+                .Select(f => estructurasPlan.FirstOrDefault(s => s.Id == f.StructureId))
+                .Where(s => s != null && s.DicomType == "PTV")
+                .GroupBy(s => s.Id)
+                .Select(g => g.First())
+                .ToList();
+        }
+
+        // Ver mismo método/comentario en Form2.xaml.cs.
+        private double volPTVParaCondicion(Structure estructuraRestriccion, List<Structure> ptvsMatcheados)
+        {
+            if (estructuraRestriccion != null && estructuraRestriccion.DicomType == "PTV")
+            {
+                return estructuraRestriccion.Volume;
+            }
+            return ptvsMatcheados.Sum(s => s.Volume);
+        }
+
         // El ID de estructura en DGV_Estructuras se asocia solo contra "plan" (asociarEstructuras()).
         // plan2 puede tener un structure set distinto (otro Id para la misma estructura), así que
         // para plan2 se re-asocia por nombre/alias directamente contra su propio structure set,
-        // en vez de reusar el ID resuelto para plan.
+        // en vez de reusar el ID resuelto para plan. No hay combo manual para plan2 (a diferencia de
+        // plan1) ni memoria en disco propia - por eso antes, si no había match exacto/alias, quedaba
+        // sin asociar y el análisis fallaba con "no se encontró la estructura" aunque el plan2 sí la
+        // tuviera con un nombre apenas distinto. Se agrega el mismo fallback por distancia que plan1.
         private Structure estructuraCorrespondiente2(Estructura estructuraTemplate, PlanningItem plan2)
         {
-            return Estructura.asociarConLista(estructuraTemplate.nombresPosibles, Estructura.listaEstructuras(plan2));
+            List<Structure> estructurasPlan2 = Estructura.listaEstructuras(plan2);
+            string idExacto = Estructura.asociarConLista(estructuraTemplate.nombresPosibles, estructurasPlan2)?.Id;
+            var candidatos = Estructura.candidatosPorDistancia(estructuraTemplate.nombresPosibles, estructurasPlan2);
+            var mejorCandidato = candidatos.Count > 0 ? Tuple.Create(candidatos[0].Item1.Id, candidatos[0].Item2) : null;
+            string idElegido = MatchingEstructuras.ElegirStructureId(idExacto, "", new List<string>(), mejorCandidato);
+            return string.IsNullOrEmpty(idElegido) ? null : estructurasPlan2.FirstOrDefault(s => s.Id == idElegido);
         }
 
         private string infoPlan()
@@ -548,6 +603,9 @@ namespace ExploracionPlanes
                 logError($"BT_Analizar_Click paciente {paciente?.Id} plan {plan?.Id} vs {plan2?.Id}", ex);
                 MessageBox.Show("Error al analizar la plantilla:\n" + ex.Message + "\n\nSe registró el detalle en log.txt");
             }
+            // El foco se queda en el botón tras el click y el tema de Windows anima su highlight
+            // (efecto "titilando" reportado por el usuario) - se saca el foco.
+            Keyboard.ClearFocus();
         }
 
         private void BT_SeleccionarPlan_Click(object sender, RoutedEventArgs e)
@@ -625,25 +683,18 @@ namespace ExploracionPlanes
             Label3.IsEnabled = false;
             LB_Planes.IsEnabled = false;
             BT_SeleccionarPlan.IsEnabled = false;
-        }
 
-        private void BT_VolumenDmax_Click(object sender, RoutedEventArgs e)
-        {
-            var fila = (FilaAnalisis)((Button)sender).DataContext;
-            var restriccion = (RestriccionDosisMax)fila.Restriccion;
-            FormTB formTb = new FormTB(fila.VolumenDmaxTexto, true);
-            formTb.Title = "Volumen dosis maxima";
-            formTb.L_Texto.Text = "Definir el tamaño del elemento de volumen para el \ncálculo de la dosis máxima [cm3]";
-            formTb.ShowDialog();
+            // Desde contexto (Aria) paciente/curso/planes ya vienen fijados - ver mismo cambio y
+            // comentario (bug de TextWrapping a ancho 0) en Form2.
+            label4.Visibility = Visibility.Collapsed;
+            GridColumnaPaciente.Visibility = Visibility.Collapsed;
+            ColPaciente.Width = new GridLength(0);
+            ColGapPaciente.Width = new GridLength(0);
 
-            if (formTb.DialogResult == true)
-            {
-                Structure estructura = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
-                restriccion.analizarPlanEstructura(planSeleccionado(), estructura, Metodos.validarYConvertirADouble(formTb.salida));
-                fila.Metrica = restriccion.valorMedido + restriccion.unidadValor;
-                fila.FondoMetrica = ColorearAnalisis.fondoWpf(restriccion);
-                fila.VolumenDmaxTexto = formTb.salida;
-            }
+            // Ver mismo cambio y comentario en Form2: con la columna 1 oculta, renumerar 4/5/6 -> 1/2/3.
+            Label_PasoEstructuras.Text = "1. Asociar estructuras";
+            Label_PasoPrescripciones.Text = "2. Ajustar prescripciones";
+            Label_PasoAnalizar.Text = "3. Analizar";
         }
 
         private List<parEstructura> listaParesEstructuras()
@@ -746,6 +797,14 @@ namespace ExploracionPlanes
         }
 
         #endregion
+
+        private void CHB_OcultarNoAnalizadas_CheckedChanged(object sender, RoutedEventArgs e)
+        {
+            if (filasAnalisis.Count > 0)
+            {
+                llenarDGVAnalisis();
+            }
+        }
 
         public void CHB_EvaluarConEQD2_CheckedChanged(object sender, RoutedEventArgs e)
         {

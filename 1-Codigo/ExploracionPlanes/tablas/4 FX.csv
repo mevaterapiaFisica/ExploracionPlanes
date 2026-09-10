@@ -1,0 +1,49 @@
+4 FRACTIONS ,,,
+STRUCTURE,TIMMERMAN ,,
+,Volume (cm3),Volume max (Gy),Max point Dose (Gy) [0.035 cm3]
+BRAIN* (including targets),,,
+Brainstem (not medulla),<0.5,20.8,27.2
+Eye (retina),,,
+"Eyelid, meibomian glands (one side)",,,
+Lens,,,
+OpticPathway,<0.2,19.2,21.2
+Lacrimal gland (one side),,,
+Cochlea,,,18
+Hippocampus (RTOG 0933),,,
+,,,
+
+###
+
+Braquial Plex,<3,24.8,29.6
+"Bronchus, smaller airways ",<0.5,28.8,34.8
+Esophagus,<5,30.4,35.6
+GreatVes,<10,43,49
+Heart/Pericardium,<15,28,34
+Liver,CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),
+,700,19.6,
+Lungs (Der e izq ),CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),
+,1500 (H)/950 (M),12,
+,37%,12.8,
+Rib,<5,43,54
+"ChestWall",,,
+Skin,<10,33.6,36
+SpinalCord and medulla,<0.35,18,25.6
+Trachea + large Bronchus ,<5,42.4,47
+Stomach,<5,25,33.2
+Spleen,,,
+Bile duct,,,38.4
+Duodenum,<5,25,33.2
+Jejunum/ileum,<30,22.4,31.6
+Colon,<20,30.8,48.5
+Ureter,,,43
+Renal hilum/vascular trunk,15,21.5,
+Renal cortex (right and left),CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),
+,200,16,
+Bladder Wall (with urine),<15,18.5,35.6
+CaudaEquina,<5,26,28.8
+FemurHeadNeck,<10,27,
+LumbSacPlex,<5,26,28.8
+Penile Bulb,<3,27,
+Rectum,<3.5,47.2,51.6
+,<20,34,
+Urethra,,,

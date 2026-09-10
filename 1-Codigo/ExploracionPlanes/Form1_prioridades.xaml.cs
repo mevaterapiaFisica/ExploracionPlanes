@@ -171,6 +171,11 @@ namespace ExploracionPlanes
             return CB_TipoRestriccion.SelectedIndex == 4;
         }
 
+        private bool esRestriccionVolumenCritico()
+        {
+            return CB_TipoRestriccion.SelectedIndex == 5;
+        }
+
         private bool esMenorQue()
         {
             return CB_MenorOMayor.SelectedIndex == 0;
@@ -275,7 +280,7 @@ namespace ExploracionPlanes
                 CB_ValorEsperadoUnidades.Visibility = Visibility.Visible;
                 CB_ValorToleradoUnidades.Visibility = Visibility.Visible;
             }
-            else if (esRestriccionVolumen())
+            else if (esRestriccionVolumen() || esRestriccionVolumenCritico())
             {
                 L_CorrespA.Text = "correspondiente a \nuna dosis de: ";
                 L_CorrespA.Visibility = Visibility.Visible;
@@ -320,6 +325,10 @@ namespace ExploracionPlanes
             else if (esRestriccionVolumen())
             {
                 return new RestriccionVolumen().crear(estructura(), unidadValor(), unidadCorrespondiente(), esMenorQue(), valorEsperado(), valorTolerado(), valorCorrespondiente(), notaRestriccion(), condicionActual, prioridad());
+            }
+            else if (esRestriccionVolumenCritico())
+            {
+                return new RestriccionVolumenCritico().crear(estructura(), unidadValor(), unidadCorrespondiente(), esMenorQue(), valorEsperado(), valorTolerado(), valorCorrespondiente(), notaRestriccion(), condicionActual, prioridad());
             }
             else //esRestriccionIndiceConformidad
             {

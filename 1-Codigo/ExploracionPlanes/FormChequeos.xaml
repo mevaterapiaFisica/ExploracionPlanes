@@ -1,8 +1,8 @@
-<local:DialogoWpf x:Class="ExploracionPlanes.SeleccionarPTV"
+<local:DialogoWpf x:Class="ExploracionPlanes.FormChequeos"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:local="clr-namespace:ExploracionPlanes"
-        Title="Selección PTV" Height="330" Width="240"
+        Title="Chequeos en plan actual" Width="440" SizeToContent="Height"
         WindowStyle="ToolWindow" ResizeMode="NoResize" ShowInTaskbar="False"
         WindowStartupLocation="CenterScreen"
         Background="#F7F8FA" FontFamily="Segoe UI" FontSize="13">
@@ -15,18 +15,18 @@
             <Setter Property="Cursor" Value="Hand" />
         </Style>
     </Window.Resources>
-    <Grid Margin="20">
+    <Grid Margin="16">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="10" />
-            <RowDefinition Height="*" />
             <RowDefinition Height="14" />
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <TextBlock Grid.Row="0" Text="Seleccionar el PTV" FontWeight="SemiBold" />
-        <ListBox x:Name="LB_PlanesComparar" Grid.Row="2" />
-        <Button x:Name="BT_Selecccionar" Grid.Row="4" Content="Seleccionar" Style="{StaticResource BotonPrimario}"
-                HorizontalAlignment="Center" Click="BT_Selecccionar_Click" />
+        <ScrollViewer Grid.Row="0" MaxHeight="500" VerticalScrollBarVisibility="Auto">
+            <TextBlock x:Name="L_Texto" TextWrapping="Wrap" />
+        </ScrollViewer>
+        <StackPanel Grid.Row="2" Orientation="Horizontal" HorizontalAlignment="Right">
+            <Button x:Name="BT_Aceptar" Content="Aceptar" Style="{StaticResource BotonPrimario}" IsDefault="True" IsCancel="True" Click="BT_Aceptar_Click" />
+        </StackPanel>
     </Grid>
 </local:DialogoWpf>

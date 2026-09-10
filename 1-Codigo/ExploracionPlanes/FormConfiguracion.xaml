@@ -18,6 +18,14 @@
             <Setter Property="Foreground" Value="#1B2A4A" />
             <Setter Property="BorderThickness" Value="1" />
             <Setter Property="BorderBrush" Value="#1B2A4A" />
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Foreground" Value="#9AA1AD" />
+                    <Setter Property="BorderBrush" Value="#D5D9E0" />
+                    <Setter Property="Background" Value="#F7F8FA" />
+                    <Setter Property="Cursor" Value="Arrow" />
+                </Trigger>
+            </Style.Triggers>
         </Style>
     </Window.Resources>
     <Grid Margin="24">

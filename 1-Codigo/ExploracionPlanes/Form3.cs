@@ -16,8 +16,6 @@ namespace ExploracionPlanes
     {
         public static string pathDestino = Configuracion.pathExportados();
         Patient paciente;
-        Course curso;
-        PlanningItem plan;
         Plantilla plantilla;
         int pacienteNro = 0;
         VMS.TPS.Common.Model.API.Application app;

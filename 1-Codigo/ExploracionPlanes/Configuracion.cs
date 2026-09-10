@@ -11,7 +11,7 @@ namespace ExploracionPlanes
     {
         public static string pathPlantilla()
         {
-            return Properties.Settings.Default.Path + @"\Plantillas\";
+            return Properties.Settings.Default.Path + @"\Plantillas_\";
         }
 
         public static string pathExportados()

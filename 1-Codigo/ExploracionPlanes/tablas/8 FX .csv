@@ -1,0 +1,46 @@
+8 FRACTIONS ,,,,,,
+STRUCTURE,TIMMERMAN ,,,UK CONSORTIUM ,,
+,Volume (cm3),Volume max (Gy),Max point Dose (Gy) [0.035 cm3],METRIC,optimal,mandatory
+BRAIN* (including targets),,,,,,
+Brainstem (not medulla),<0.5,27.2,37.6,,,
+Lens,,,,,,
+OpticPathway,<0.2,27.2,29.6,,,
+Orbit,,,,,,
+Cochlea,,,26.4,,,
+
+###
+
+Braquial Plex,<3,32.8,39.2,D0.1cc,35Gy,39Gy
+"Bronchus, smaller airways ",<0.5,38.4,48.8,,,
+Esophagus,<5,36.8,43.2,D0.1cc,,40Gy
+GreatVes,<10,55.2,62,D0.1cc,60Gy,65Gy
+Heart/Pericardium,<15,34.4,40,D0.1cc,40Gy,46Gy
+Liver ,CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),,,,
+,700,24.8,,,,
+Lungs (Der e izq ),CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),,,,
+,1500 (H)/950 (M),14.4,,V20Gy,10 %,15 %
+,37%,15.2,,DMed,8 Gy,
+Rib,<5,50,63,,,
+"ChestWall",,,,,,
+Skin,<10,43.2,45.6,D0.1cc,48 Gy,
+,,,,D10cc,44 Gy,
+SpinalCord and medulla,<0.35,26.4,33.6,D0.035cc,,32 Gy
+Trachea + large Bronchus ,<5,50,56,D0.1cc,,40 Gy
+Stomach,<5,31.2,42,,,
+Spleen,,,,,,
+Bile duct,,,48,,,
+Duodenum,<5,31.2,42,,,
+Jejunum/ileum,<30,28.8,40,,,
+Colon,<20,35.2,57.5,,,
+Ureter,,,53,,,
+Renal hilum/vascular trunk,15,28,,,,
+Renal cortex (right and left),CRITICAL VOLUME (cm3),CRITICAL VOLUME DOSE MAX (Gy),,,,
+,200,20,,,,
+Bladder Wall (with urine),<15,22.4,44.8,,,
+CaudaEquina,<5,34,38.4,,,
+FemurHeadNeck,<10,35,,,,
+LumbSacPlex,<5,34,38.4,,,
+Penile Bulb,<3,35,,,,
+Rectum,<3.5,56,61.5,,,
+,<20,45,,,,
+Urethra,,,,,,

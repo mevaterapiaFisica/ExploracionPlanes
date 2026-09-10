@@ -13,7 +13,7 @@ namespace ExploracionPlanes
     {
         public static List<Plantilla> listaPlantillas(string nombrePlantilla, bool soloPlanesAprobados)
         {
-            List<string> archivos = Directory.GetFiles(Form2.pathReportesJson).Where(f => f.Contains(nombrePlantilla)).ToList();
+            List<string> archivos = Directory.GetFiles(Form2Compartido.pathReportesJson).Where(f => f.Contains(nombrePlantilla)).ToList();
             List<Plantilla> plantillas = new List<Plantilla>();
             List<Plantilla> plantillasFiltradas = new List<Plantilla>();
             foreach (string archivo in archivos)
@@ -96,7 +96,7 @@ namespace ExploracionPlanes
                 }
                 output.Add(linea);
             }
-            string path = Form2.pathReportesJson + @"Analisis\" + plantillas[0].nombre + "_" + DateTime.Today.Date.ToString("dd-MM-yyyy") + ".txt";
+            string path = Form2Compartido.pathReportesJson + @"Analisis\" + plantillas[0].nombre + "_" + DateTime.Today.Date.ToString("dd-MM-yyyy") + ".txt";
             File.WriteAllLines(path, output);
             MessageBox.Show("Se analizaron " + plantillas.Count.ToString() + " plantillas\nSe escribieron los resultados en el archivo " + path);
         }

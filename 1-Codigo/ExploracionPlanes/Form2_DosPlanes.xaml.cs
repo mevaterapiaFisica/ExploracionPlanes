@@ -10,7 +10,6 @@ using System.Windows.Input;
 using VMS.TPS.Common.Model.API;
 using VMS.TPS.Common.Model.Types;
 using MigraDoc.DocumentObjectModel;
-using MigraDoc.Rendering;
 
 namespace ExploracionPlanes
 {
@@ -99,16 +98,6 @@ namespace ExploracionPlanes
             app.ClosePatient();
         }
 
-        public Course abrirCurso(Patient paciente, string nombreCurso)
-        {
-            return paciente.Courses.Where(c => c.Id == nombreCurso).FirstOrDefault();
-        }
-
-        public PlanningItem abrirPlan(Course curso, string nombrePlan)
-        {
-            return curso.PlanSetups.Where(p => p.Id == nombrePlan).FirstOrDefault();
-        }
-
         public PlanningItem planSeleccionado()
         {
             if (hayContext)
@@ -127,39 +116,6 @@ namespace ExploracionPlanes
             }
         }
 
-        public string equipo()
-        {
-            string equipoID = "";
-            if (planSeleccionado() is PlanSetup)
-            {
-                equipoID = ((PlanSetup)planSeleccionado()).Beams.First().TreatmentUnit.Id;
-            }
-            else if (planSeleccionado() is PlanSum)
-            {
-                equipoID = ((PlanSum)planSeleccionado()).PlanSetups.First().Beams.First().TreatmentUnit.Id;
-            }
-            return Equipos.diccionario()[equipoID];
-        }
-
-        public List<Course> listaCursos(Patient paciente)
-        {
-            return paciente.Courses.ToList<Course>();
-        }
-
-        public List<PlanningItem> listaPlanes(Course curso)
-        {
-            List<PlanningItem> lista = new List<PlanningItem>();
-            foreach (PlanSetup planSetup in curso.PlanSetups)
-            {
-                lista.Add(planSetup);
-            }
-            foreach (PlanSum planSum in curso.PlanSums)
-            {
-                lista.Add(planSum);
-            }
-            return lista;
-        }
-
         private void BT_AbrirPaciente_Click(object sender, RoutedEventArgs e)
         {
             // Limpiar ANTES de abrirPaciente(): ese método cierra el paciente anterior (dispose de
@@ -169,7 +125,7 @@ namespace ExploracionPlanes
             LB_Planes.Items.Clear();
             if (abrirPaciente(TB_ID.Text))
             {
-                foreach (Course curso in listaCursos(paciente))
+                foreach (Course curso in Form2Compartido.listaCursos(paciente))
                 {
                     LB_Cursos.Items.Add(curso);
                 }
@@ -188,7 +144,7 @@ namespace ExploracionPlanes
             {
                 return;
             }
-            foreach (PlanningItem plan in listaPlanes(cursoElegido))
+            foreach (PlanningItem plan in Form2Compartido.listaPlanes(cursoElegido))
             {
                 LB_Planes.Items.Add(plan);
             }
@@ -240,26 +196,8 @@ namespace ExploracionPlanes
                 filasPrescripciones.Add(new FilaPrescripcion
                 {
                     Estructura = estructura.nombre,
-                    Dosis = Form2.prescripcionPredefinida(estructura, plantilla, Math.Round(prescripcion, 2), paciente, planSeleccionado()).ToString()
+                    Dosis = Form2Compartido.prescripcionPredefinida(estructura, plantilla, Math.Round(prescripcion, 2), paciente, planSeleccionado()).ToString()
                 });
-            }
-        }
-
-        private void aplicarPrescripciones()
-        {
-            foreach (IRestriccion restriccion in plantilla.listaRestricciones)
-            {
-                if (restriccion.dosisEstaEnPorcentaje())
-                {
-                    foreach (var fila in filasPrescripciones)
-                    {
-                        if (restriccion.estructura.nombre.Equals(fila.Estructura))
-                        {
-                            restriccion.prescripcionEstructura = Metodos.validarYConvertirADouble(fila.Dosis);
-                            break;
-                        }
-                    }
-                }
             }
         }
 
@@ -276,9 +214,9 @@ namespace ExploracionPlanes
 
         private void asociarEstructuras()
         {
-            bool existeArchivoPar = File.Exists(Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
+            bool existeArchivoPar = File.Exists(Form2Compartido.nombreArchivoParEstructura(paciente, planSeleccionado()));
             List<parEstructura> lista = existeArchivoPar
-                ? Form2.leerArchivoParEstructura(Form2.nombreArchivoParEstructura(paciente, planSeleccionado()))
+                ? Form2Compartido.leerArchivoParEstructura(Form2Compartido.nombreArchivoParEstructura(paciente, planSeleccionado()))
                 : new List<parEstructura>();
             List<Structure> estructurasPlan = Estructura.listaEstructuras(planSeleccionado());
             for (int i = 0; i < filasEstructuras.Count; i++)
@@ -286,7 +224,7 @@ namespace ExploracionPlanes
                 var fila = filasEstructuras[i];
                 List<string> nombresPosibles = plantilla.estructuras()[i].nombresPosibles;
                 string idExacto = Estructura.asociarConLista(nombresPosibles, estructurasPlan)?.Id;
-                string idMemoria = existeArchivoPar ? Form2.structureDeEstructura(fila.NombreSlot, lista) : "";
+                string idMemoria = existeArchivoPar ? Form2Compartido.structureDeEstructura(fila.NombreSlot, lista) : "";
                 var candidatos = Estructura.candidatosPorDistancia(nombresPosibles, estructurasPlan);
                 var mejorCandidato = candidatos.Count > 0 ? Tuple.Create(candidatos[0].Item1.Id, candidatos[0].Item2) : null;
                 fila.StructureId = MatchingEstructuras.ElegirStructureId(idExacto, idMemoria, fila.Opciones, mejorCandidato);
@@ -352,7 +290,7 @@ namespace ExploracionPlanes
                 if (restriccion.condicion != null)
                 {
                     Structure estructuraCondicion = estructuraCorrespondiente(restriccion.estructura.nombre, plan);
-                    if (!restriccion.condicion.CumpleCondicion(plan, volPTVParaCondicion(estructuraCondicion, ptvsMatcheados)))
+                    if (!restriccion.condicion.CumpleCondicion(plan, Form2Compartido.volPTVParaCondicion(estructuraCondicion, ptvsMatcheados)))
                     {
                         continue;
                     }
@@ -558,16 +496,6 @@ namespace ExploracionPlanes
                 .ToList();
         }
 
-        // Ver mismo método/comentario en Form2.xaml.cs.
-        private double volPTVParaCondicion(Structure estructuraRestriccion, List<Structure> ptvsMatcheados)
-        {
-            if (estructuraRestriccion != null && estructuraRestriccion.DicomType == "PTV")
-            {
-                return estructuraRestriccion.Volume;
-            }
-            return ptvsMatcheados.Sum(s => s.Volume);
-        }
-
         // El ID de estructura en DGV_Estructuras se asocia solo contra "plan" (asociarEstructuras()).
         // plan2 puede tener un structure set distinto (otro Id para la misma estructura), así que
         // para plan2 se re-asocia por nombre/alias directamente contra su propio structure set,
@@ -594,9 +522,9 @@ namespace ExploracionPlanes
         {
             try
             {
-                aplicarPrescripciones();
+                Form2Compartido.aplicarPrescripciones(plantilla, filasPrescripciones);
                 llenarDGVAnalisis();
-                Form2.escribirArchivoParEstructuras(listaParesEstructuras(), Form2.nombreArchivoParEstructura(paciente, planSeleccionado()));
+                Form2Compartido.escribirArchivoParEstructuras(listaParesEstructuras(), Form2Compartido.nombreArchivoParEstructura(paciente, planSeleccionado()));
             }
             catch (Exception ex)
             {
@@ -636,25 +564,7 @@ namespace ExploracionPlanes
 
         private void Form2_Closing(object sender, CancelEventArgs e)
         {
-            // ponytail: ver el mismo comentario en Form2.xaml.cs - excepción no manejada acá
-            // afecta a todo el proceso, no solo a esta ventana. No se llama a cerrarPaciente()
-            // antes de Dispose() (dos cierres nativos seguidos contra la misma sesión, sospecha
-            // de fallo - Dispose ya cierra el paciente solo).
-            try
-            {
-                if (!hayContext)
-                {
-                    LB_Cursos.Items.Clear();
-                    LB_Planes.Items.Clear();
-                }
-                if (app != null)
-                {
-                    app.Dispose();
-                }
-            }
-            catch (Exception)
-            {
-            }
+            Form2Compartido.cerrarSesion(hayContext, app, LB_Cursos.Items, LB_Planes.Items);
         }
 
         private void TB_ID_TextChanged(object sender, TextChangedEventArgs e)
@@ -736,16 +646,6 @@ namespace ExploracionPlanes
             };
         }
 
-        private static System.Drawing.Color colorDrawing(System.Windows.Media.Brush brush)
-        {
-            if (brush is System.Windows.Media.SolidColorBrush solido && solido.Color.A != 0)
-            {
-                var c = solido.Color;
-                return System.Drawing.Color.FromArgb(255, c.R, c.G, c.B);
-            }
-            return System.Drawing.Color.White;
-        }
-
         private TablaReporte tablaReporte()
         {
             var tabla = new TablaReporte { Columnas = columnasReporte() };
@@ -753,7 +653,7 @@ namespace ExploracionPlanes
             {
                 var filaReporte = new FilaReporte();
                 filaReporte.Valores.AddRange(new[] { fila.Estructura, fila.Prioridad, fila.Metrica, fila.Volumen, fila.EnPlan, fila.EnPlan2, fila.Esperado, fila.Referencia });
-                filaReporte.Fondos.AddRange(new[] { colorDrawing(null), colorDrawing(null), colorDrawing(fila.FondoMetrica), colorDrawing(null), colorDrawing(fila.FondoEnPlan), colorDrawing(fila.FondoEnPlan2), colorDrawing(null), colorDrawing(null) });
+                filaReporte.Fondos.AddRange(new[] { Form2Compartido.colorDrawing(null), Form2Compartido.colorDrawing(null), Form2Compartido.colorDrawing(fila.FondoMetrica), Form2Compartido.colorDrawing(null), Form2Compartido.colorDrawing(fila.FondoEnPlan), Form2Compartido.colorDrawing(fila.FondoEnPlan2), Form2Compartido.colorDrawing(null), Form2Compartido.colorDrawing(null) });
                 tabla.Filas.Add(filaReporte);
             }
             return tabla;
@@ -774,7 +674,7 @@ namespace ExploracionPlanes
                     prescripcion += plan.TotalPrescribedDose.Dose / 100;
                 }
             }
-            return Reporte.crearReporte(paciente.LastName, paciente.FirstName, paciente.Id, equipo(), plantilla.nombre, plantilla.nota, usuarioNombre, Convert.ToString(infoPlan()), Convert.ToString(prescripcion), tablaReporte());
+            return Reporte.crearReporte(paciente.LastName, paciente.FirstName, paciente.Id, Form2Compartido.equipo(planSeleccionado()), plantilla.nombre, plantilla.nota, usuarioNombre, Convert.ToString(infoPlan()), Convert.ToString(prescripcion), tablaReporte());
         }
 
         private void BT_GuardarReporte_Click(object sender, RoutedEventArgs e)
@@ -784,16 +684,7 @@ namespace ExploracionPlanes
 
         private void BT_Imprimir_Click(object sender, RoutedEventArgs e)
         {
-            var pd = new MigraDoc.Rendering.Printing.MigraDocPrintDocument();
-            var rendered = new DocumentRenderer(reporte());
-            rendered.PrepareDocument();
-            pd.Renderer = rendered;
-            var printDialog = new System.Windows.Forms.PrintDialog();
-            if (printDialog.ShowDialog() == System.Windows.Forms.DialogResult.OK)
-            {
-                pd.PrinterSettings = printDialog.PrinterSettings;
-                pd.Print();
-            }
+            Form2Compartido.imprimir(reporte());
         }
 
         #endregion
@@ -824,20 +715,12 @@ namespace ExploracionPlanes
                 else
                 {
                     Col_AlfaBeta.Visibility = Visibility.Visible;
-                    cargarAlfaBetaDGVEstructuras();
+                    Form2Compartido.cargarAlfaBetaDGVEstructuras(filasEstructuras);
                 }
             }
             else
             {
                 Col_AlfaBeta.Visibility = Visibility.Collapsed;
-            }
-        }
-
-        public void cargarAlfaBetaDGVEstructuras()
-        {
-            foreach (var fila in filasEstructuras)
-            {
-                fila.AlfaBeta = Estructura.AlfaBeta(fila.NombreSlot).ToString();
             }
         }
 

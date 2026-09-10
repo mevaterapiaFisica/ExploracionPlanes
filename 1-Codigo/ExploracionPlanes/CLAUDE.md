@@ -35,9 +35,10 @@ Warnings de arquitectura MSIL/AMD64 son preexistentes y esperables (refs de ESAP
   pasar el owner explícito (`DialogoWpf.OwnerWin32`), `ActiveForm`/chrome propio no aplican ahí.
 - `IRestriccion` + 6 implementaciones (`RestriccionDosis`, `RestriccionDosisMax`,
   `RestriccionDosisMedia`, `RestriccionVolumen`, `RestriccionVolumenCritico`,
-  `RestriccionIndiceConformidad`): cada tipo de restricción clínica evaluable sobre un plan.
-  Comparten mucha lógica (evaluación de tolerancia, sampling coverage) sin una base común — al
-  tocar una, revisar si el cambio aplica a las demás.
+  `RestriccionIndiceConformidad`), todas heredan de `RestriccionBase` (evaluación de tolerancia,
+  sampling coverage, edición en grupo). Cada subclase solo define `crearEtiquetaInicio()`,
+  `analizarPlanEstructura()` y `crear()` — si un cambio aplica a la lógica compartida, va en
+  `RestriccionBase`, no en cada subclase.
 - `Chequeos.cs`: chequeos de QA (camilla-equipo, dose rate, nombre de curso, isocentros) sobre un
   plan/PlanSum antes de analizar.
 
@@ -49,6 +50,9 @@ Warnings de arquitectura MSIL/AMD64 son preexistentes y esperables (refs de ESAP
 - **`Configuracion.*()`** (ej. `volDosisMaxima()`) lee `Properties.Settings.Default` en vivo — no
   cachear su valor en un campo `static` (ver historial en `Tests.md`, ya pasó con
   `RestriccionDosisMax`), porque el usuario puede cambiar la config sin reiniciar la app.
-- **Form2.xaml.cs / Form2_DosPlanes.xaml.cs**: ~70% duplicados (mismo flujo para 1 o 2 planes). La
-  fusión en un solo formulario está evaluada y deliberadamente pospuesta (ver `Tests.md`,
-  2026-09-10) — no asumir que es un cambio chico.
+- **Form2.xaml.cs / Form2_DosPlanes.xaml.cs**: siguen siendo 2 ventanas/XAML separadas (flujo de
+  análisis para 1 vs. 2 planes, genuinamente distinto), pero todo lo que era código C# idéntico
+  (I/O de memoria por plan, `prescripcionPredefinida`, impresión, etc.) vive en `Form2Compartido`
+  — llamar ahí antes de copiar un helper de una ventana a la otra. La fusión completa en una sola
+  ventana (eliminar también la duplicación de XAML) sigue evaluada y pospuesta por el riesgo de un
+  rewrite de layout no verificable sin Eclipse (ver `Tests.md`, 2026-09-10).

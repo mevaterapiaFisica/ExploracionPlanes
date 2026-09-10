@@ -4,6 +4,44 @@ Registro de tests hechos sobre cambios de código funcional. Cada entrada docume
 
 ---
 
+## 2026-09-10 (5) — Base común para las 6 clases Restriccion* y deduplicación de Form2/Form2_DosPlanes
+
+### Pedido
+
+Hacer los dos refactors de redundancia que se habían dejado pendientes en la entrada (4): una base común para `RestriccionDosis`/`RestriccionDosisMax`/`RestriccionDosisMedia`/`RestriccionVolumen`/`RestriccionVolumenCritico`/`RestriccionIndiceConformidad`, y deduplicar `Form2`/`Form2_DosPlanes`. Alcance acordado con el usuario para el segundo: solo unificar código C# compartido, sin tocar los XAML (dos ventanas separadas siguen existiendo) — la fusión completa en una sola ventana se evaluó como alto riesgo (rewrite de layout no verificable sin abrir Eclipse) y se descartó.
+
+### Antes
+
+- Las 6 clases `Restriccion*` implementaban `IRestriccion` cada una por separado, con `cumple()`, `crearEtiqueta()`, `chequearSamplingCoverage()`, `agregarALista()`, `metrica()`, `cumpleCondicion()`, `ToString()`, `datosEdicion()` y `editarGrupo()` copiados palabra por palabra en las 6 (con solo el índice `IndiceTipoRestriccion` y un par de detalles cambiando entre ellas).
+- `Form2.xaml.cs`/`Form2_DosPlanes.xaml.cs` (~1979 líneas entre las dos) tenían duplicados: `equipo()`, `listaCursos()`, `listaPlanes()`, `abrirCurso()`/`abrirPlan()` (sin ningún caller en ninguna de las dos - código muerto), `aplicarPrescripciones()`, `colorDrawing()`, `cargarAlfaBetaDGVEstructuras()`, `Form2_Closing`, `BT_Imprimir_Click`, y toda la familia de I/O de memoria por plan (`escribirArchivoParEstructuras`/`leerArchivoParEstructura`/`escribirArchivoPrescripciones`/`leerArchivoPrescripcion`/`structureDeEstructura`/`memoriaEstructuras`/`memoriaPrescripciones`/`nombreArchivoParEstructura`/`nombreArchivoPrescripciones`/`prescripcionPredefinida` + los 4 path de `Properties.Settings`), todo definido en `Form2` y llamado desde `Form2_DosPlanes` con el prefijo `Form2.` (acoplamiento cruzado, no una base compartida real).
+
+### Cambio
+
+- **`RestriccionBase.cs`** (clase abstracta, implementa `IRestriccion`): concentra todos los campos y los métodos idénticos de arriba. Cada subclase concreta quedó con solo lo que de verdad cambia por tipo: `crearEtiquetaInicio()`, las dos sobrecargas de `analizarPlanEstructura()`, `crear()`, y 3 hooks chicos por override donde el comportamiento realmente difiere y ya estaba divergido antes del refactor: `IndiceTipoRestriccion` (abstracto), `dosisEstaEnPorcentaje()` (override en `RestriccionVolumen`/`RestriccionVolumenCritico`, que miran `unidadCorrespondiente`, y en `RestriccionIndiceConformidad`, que siempre da `true`), `IncluirUnidadValorEnEtiqueta` (`false` solo en `RestriccionIndiceConformidad`) y `valorCorrespondienteParaEdicion()` (`null` en `RestriccionDosisMax`/`RestriccionDosisMedia`, que no tienen "valor correspondiente"). Ninguna de estas diferencias preexistentes se tocó ni se unificó — se preservaron tal cual estaban.
+- **`Form2Compartido.cs`** (clase estática nueva, no una base de `Window`): concentra todo lo que era texto idéntico entre `Form2` y `Form2_DosPlanes` — helpers puros (`equipo`, `listaCursos`, `listaPlanes`, `volPTVParaCondicion`, `colorDrawing`), I/O de memoria por plan y sus 4 `path*`, `prescripcionPredefinida`, `aplicarPrescripciones`, `cargarAlfaBetaDGVEstructuras`, `cerrarSesion` (unifica `Form2_Closing`) e `imprimir` (unifica `BT_Imprimir_Click`). Ambas ventanas siguen derivando de `DialogoWpf` directamente (no de una base común), evitando tocar el `x:Class`/root element de los XAML.
+- Se aprovechó para borrar `abrirCurso()`/`abrirPlan()` en ambos archivos (confirmado sin ningún caller en todo el repo, código muerto preexistente).
+- Se actualizaron los 2 call sites externos que usaban `Form2.pathReportesJson`/`Form2.prescripcionPredefinida`/etc. (`Mineria.cs`, y los propios `Form2_DosPlanes.xaml.cs`) para apuntar a `Form2Compartido`.
+- **No se tocó** (mismo criterio que la entrada anterior): la lógica de `llenarDGVAnalisis()`/`analizarRestriccion()` (genuinamente distinta entre 1 y 2 planes, incluyendo el try/catch+`logError` por restricción que solo tiene `Form2_DosPlanes` y `Form2` no — drift real, no se copió a `Form2` para no mezclar un cambio de comportamiento con este refactor de estructura), `prepararControlesContext()` (referencia ~13 controles nombrados por XAML, el costo de abstraerlo vía propiedades virtuales no compensaba las ~20 líneas que ahorraría), y la funcionalidad de "duplicar estructura" que solo existe en `Form2`.
+
+### Cómo se testeó
+
+- **Compilación completa** (`MSBuild ExploracionPlanes.csproj`) después de cada archivo tocado: build OK, sin errores, mismos warnings preexistentes de siempre.
+- **`Tests/TestMejoras/Program.cs`**, sección 8 nueva: réplica fiel de `RestriccionBase.crearEtiqueta()`/`cumple()` y de los 3 criterios de `dosisEstaEnPorcentaje()` (default por `unidadValor`, override por `unidadCorrespondiente`, y el caso siempre-`true` de IndiceConformidad), verificando etiqueta con/sin unidad, con condición `VolPTV`, con `planMod`, y los 3 resultados de `cumple()` (cumple/tolerancia/fuera de tolerancia). `dotnet run`: `TODOS LOS CHEQUEOS OK` (incluye las 7 secciones previas, sin regresiones).
+- La deduplicación de `Form2Compartido` es extracción mecánica de código ya existente (mismo texto, movido de lugar) — verificada por lectura línea a línea contra el original de cada método antes de mover, no por un test nuevo (no hay forma de instanciar `Form2`/`Form2_DosPlanes` fuera de Eclipse).
+
+### Conclusión
+
+- Las 6 clases `Restriccion*` pasan de ~1755 líneas combinadas a ~807 (incluyendo la base) - una modificación a la lógica de tolerancia, sampling coverage o edición en grupo ahora se hace una sola vez.
+- `Form2`/`Form2_DosPlanes` bajan de ~1979 a ~1890 líneas (menos reducción que en Restriccion* porque la mayor parte de esas ~1979 líneas era lógica de análisis genuinamente distinta entre 1 y 2 planes, no duplicación) — pero el acoplamiento cruzado `Form2.metodoEstatico()` que tenía `Form2_DosPlanes` desaparece: ambas llaman a `Form2Compartido` por igual.
+- La fusión completa en una sola ventana (eliminar también la duplicación de XAML) queda evaluada y descartada por ahora — ver "Antes"/pedido de esta entrada.
+
+### Pendiente
+
+- Verificación visual en Eclipse/standalone de: abrir paciente/curso/plan en ambas ventanas, analizar con EQD2, imprimir y guardar reporte, en ambas.
+- Si en algún momento se decide encarar la fusión completa en una sola ventana, es un trabajo aparte (rewrite de layout XAML) que necesita poder verse corriendo antes de confiar en él.
+
+---
+
 ## 2026-09-10 (4) — Revisión completa de código: bugs, redundancias, código muerto
 
 ### Pedido

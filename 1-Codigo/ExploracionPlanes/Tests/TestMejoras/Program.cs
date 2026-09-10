@@ -295,6 +295,75 @@ chequear("Antes hubiera dado NaN/Infinity (0/0); ahora devuelve z1 en el tramo p
 chequear("Caso normal (x1 != x2) sigue interpolando igual que antes",
     Interpolar1D(0, 10, 0, 100, 5) == 50);
 
+// ===== 8) RestriccionBase: la lógica compartida (extraída de las 6 clases Restriccion*) da el mismo
+// resultado que daba cada clase por separado antes del refactor. Copia fiel de
+// RestriccionBase.crearEtiqueta/cumple (ExploracionPlanes no se puede referenciar acá porque arrastra
+// las dependencias de ESAPI, que no están disponibles fuera de Eclipse - mismo criterio que el resto
+// de este archivo: se reproduce la lógica pura tal cual quedó en el código real).
+Console.WriteLine();
+Console.WriteLine("=== 8) RestriccionBase: etiqueta/cumple/dosisEstaEnPorcentaje iguales a las 6 clases antes del refactor ===");
+
+string CrearEtiquetaBase(string etiquetaInicio, string prioridad, double valorEsperado, bool esMenorQue, double valorTolerado,
+    string unidadValor, bool incluirUnidadValorEnEtiqueta, string condicionTipo, string condicionId, string condicionEtiquetaAnidada, string planMod)
+{
+    string etiqueta = etiquetaInicio;
+    if (!string.IsNullOrEmpty(prioridad)) etiqueta += " (p=" + prioridad + ") ";
+    if (!double.IsNaN(valorEsperado))
+    {
+        etiqueta += esMenorQue ? " < " : " > ";
+        etiqueta += valorEsperado.ToString();
+        if (!double.IsNaN(valorTolerado)) etiqueta += " (" + valorTolerado.ToString() + ") ";
+        if (incluirUnidadValorEnEtiqueta) etiqueta += unidadValor;
+    }
+    if (condicionTipo == "NumFx" || condicionTipo == "VolPTV") etiqueta += " (" + condicionId + ")";
+    else if (condicionTipo == "CondicionadaPor") etiqueta += " (" + condicionEtiquetaAnidada + ") ";
+    if (!string.IsNullOrEmpty(planMod)) etiqueta += "*";
+    return etiqueta;
+}
+
+int CumpleBase(bool esMenorQue, double valorMedido, double valorEsperado, double valorTolerado)
+{
+    if (esMenorQue)
+    {
+        if (valorMedido <= valorEsperado) return 0;
+        if (!double.IsNaN(valorTolerado) && valorMedido <= valorTolerado) return 1;
+        return 2;
+    }
+    else
+    {
+        if (valorMedido >= valorEsperado) return 0;
+        if (!double.IsNaN(valorTolerado) && valorMedido >= valorTolerado) return 1;
+        return 2;
+    }
+}
+
+// RestriccionDosis: etiqueta con unidad, sin condición, sin planMod (caso base, igual antes y después).
+chequear("RestriccionDosis: etiqueta 'PTV: D95%: < 50 (45) Gy' (con unidad, sin condicion)",
+    CrearEtiquetaBase("PTV: D95%", "", 50, true, 45, "Gy", true, "", "", "", "") == "PTV: D95% < 50 (45) Gy");
+chequear("RestriccionDosis: cumple()=0 si valorMedido<=valorEsperado (esMenorQue)",
+    CumpleBase(true, 40, 45, 50) == 0);
+chequear("RestriccionDosis: cumple()=1 en tolerancia (entre esperado y tolerado), =2 fuera de tolerancia",
+    CumpleBase(true, 47, 45, 50) == 1 && CumpleBase(true, 60, 45, 50) == 2);
+
+// RestriccionIndiceConformidad: la única que NO agrega la unidad (IncluirUnidadValorEnEtiqueta=false) y con condición VolPTV.
+chequear("RestriccionIndiceConformidad: etiqueta sin unidad ('IC (100%) < 1.2 (1.4)') aunque unidadValor no esté vacío",
+    CrearEtiquetaBase("IC (100%)", "", 1.2, true, 1.4, "unidadQueNoDeberiaAparecer", false, "", "", "", "") == "IC (100%) < 1.2 (1.4) ");
+chequear("RestriccionDosis (u otro tipo con unidad): la misma etiqueta SÍ lleva la unidad",
+    CrearEtiquetaBase("IC (100%)", "", 1.2, true, 1.4, "Gy", true, "", "", "", "") == "IC (100%) < 1.2 (1.4) Gy");
+chequear("Con condición VolPTV, se agrega '(id de la condicion)' al final",
+    CrearEtiquetaBase("PTV: V95%", "", 95, false, 90, "%", true, "VolPTV", "VolPTV<10", "", "") == "PTV: V95% > 95 (90) % (VolPTV<10)");
+chequear("Con planMod, se agrega '*' al final",
+    CrearEtiquetaBase("PTV: V95%", "", 95, false, 90, "%", true, "", "", "", "PlanX_Mod").EndsWith("*"));
+
+// dosisEstaEnPorcentaje: default (RestriccionDosis/DosisMax/DosisMedia) mira unidadValor;
+// RestriccionVolumen/VolumenCritico miran unidadCorrespondiente; RestriccionIndiceConformidad siempre true.
+bool DosisEstaEnPorcentajeDefault(string unidadValor) => unidadValor == "%";
+bool DosisEstaEnPorcentajeVolumen(string unidadCorrespondiente) => unidadCorrespondiente == "%";
+chequear("RestriccionDosis: dosisEstaEnPorcentaje mira unidadValor ('%'->true, 'Gy'->false)",
+    DosisEstaEnPorcentajeDefault("%") && !DosisEstaEnPorcentajeDefault("Gy"));
+chequear("RestriccionVolumen/VolumenCritico: dosisEstaEnPorcentaje mira unidadCorrespondiente, no unidadValor",
+    DosisEstaEnPorcentajeVolumen("%") && !DosisEstaEnPorcentajeVolumen("Gy"));
+
 Console.WriteLine();
 if (huboError)
 {

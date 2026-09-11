@@ -122,7 +122,7 @@ namespace ExploracionPlanes
         {
             if (Double.IsNaN(valorMedido))
             {
-                if (plan.GetDVHCumulativeData(estructura, DoseValuePresentation.Absolute, VolumePresentation.Relative, 0.01).SamplingCoverage < 0.9)
+                if (CacheDVH.Obtener(plan, estructura, VolumePresentation.Relative).SamplingCoverage < 0.9)
                 {
                     return true;
                 }

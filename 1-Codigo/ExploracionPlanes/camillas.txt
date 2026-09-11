@@ -1,0 +1,13 @@
+Unipanel, large	PBA_6EX_730
+Unipanel, large	6EX Viamonte
+Unipanel, large	CL21EX
+Unipanel, large	CRC_EQ1
+Unipanel, large	Varian-600C
+Unipanel, large	600 C / D
+Unipanel, large	Varian 21 EX
+IGRT	Equipo1
+IGRT	Equipo3
+IGRT	Equipo 2 6EX
+BL_ICT	D-2300CD
+QFix	EQ2_iX_827
+Unipanel	QBA_600CD_523

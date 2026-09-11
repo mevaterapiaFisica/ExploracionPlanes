@@ -4,6 +4,81 @@ Registro de tests hechos sobre cambios de código funcional. Cada entrada docume
 
 ---
 
+## 2026-09-10 (7) — Cache de GetDVHCumulativeData por (plan, estructura, presentación) — Análisis de plan suma lento
+
+### Pedido
+
+El usuario reportó que analizar un plan suma (comparar contra un `PlanSum`) demora mucho más que un plan común. Diagnóstico: `PlanSum` no tiene los atajos `GetVolumeAtDose`/`GetDoseAtVolume` que sí tiene `PlanSetup` (que ESAPI resuelve con el DVH ya cacheado internamente); el código cae a `GetDVHCumulativeData` (recalcula el histograma completo estructura/grilla de dosis en el servidor, sin cache propio de ESAPI para `PlanSum`) **una vez por restricción**, aunque varias restricciones de la plantilla compartan la misma estructura (típico: un PTV con D95/Dmax/V100 son 3 restricciones, 3 recálculos completos de la misma curva). Se decidió compartir ese `DVHData` entre restricciones de un mismo análisis en vez de tocar el `binWidth` (ver conversación: 0.01 Gy = 1cGy ya es el piso de precisión pedido, agrandarlo mete error de interpolación en tramos con curvatura fuerte de la DVH).
+
+### Antes
+
+Cada tipo de `Restriccion*` (`Dosis`, `DosisMax`, `DosisMedia`, `Volumen`, `VolumenCritico`, `IndiceConformidad`) llamaba su propio `((PlanSum)plan).GetDVHCumulativeData(estructura, ..., 0.01)` (o `BODY` en el caso de `IndiceConformidad`) de forma independiente, sin compartir resultado con otras restricciones sobre la misma estructura ni con `chequearSamplingCoverage()` (que ya se había deduplicado a nivel de una sola restricción en la entrada anterior (6), pero no entre restricciones distintas).
+
+### Cambio
+
+- **`CacheDVH.cs`** (clase estática nueva): `Dictionary<(PlanningItem, Structure, VolumePresentation), DVHData>` — `Obtener(plan, estructura, volumePresentation)` devuelve el `DVHData` cacheado si ya se pidió esa combinación exacta, si no lo pide a ESAPI y lo guarda. `DoseValuePresentation` y `binWidth` no entran en la clave porque todo el código de producción los usa fijos (`Absolute`/`0.01`) — si algún día cambiaran, agregarlos a la clave. `Limpiar()` vacía el diccionario.
+- `RestriccionBase.chequearSamplingCoverage()`: pasa a usar `CacheDVH.Obtener(plan, estructura, VolumePresentation.Relative)` en vez de pedir directo a ESAPI o mantener un cache propio por instancia (se sacó el mecanismo de `RegistrarDVHData`/campos cacheados de la entrada (6), reemplazado por este cache compartido, más general).
+- `RestriccionDosis.cs`, `RestriccionDosisMax.cs`, `RestriccionDosisMedia.cs` (2 sobrecargas), `RestriccionVolumen.cs` (2 sobrecargas), `RestriccionVolumenCritico.cs` (2 sobrecargas), `RestriccionIndiceConformidad.cs`: sus llamadas a `GetDVHCumulativeData(...).CurveData`/`.MeanDose` pasan a `CacheDVH.Obtener(plan, estructura, volumePresentation)` (o `BODY` en `IndiceConformidad` — ahora esa también se comparte entre todas las restricciones IC de la plantilla, que siempre consultan la misma estructura BODY).
+- `Form2.xaml.cs`, `Form2_DosPlanes.xaml.cs`, `Form3.cs`: `CacheDVH.Limpiar()` al principio de `llenarDGVAnalisis()` (el método que dispara cada análisis), para no arrastrar `DVHData` de un plan/paciente anterior de una corrida a la otra (evita crecimiento de memoria sin límite a lo largo de una sesión, y evita usar por error un DVH de un plan que ya no es el actual).
+
+### Cómo se testeó
+
+- **Compilación completa** (`MSBuild ExploracionPlanes.csproj`): build OK, mismos warnings preexistentes de arquitectura MSIL/AMD64.
+- **`Tests/TestMejoras/Program.cs`**, sección 10 nueva: como no se puede instanciar `PlanningItem`/`Structure`/`DVHData` reales fuera de Eclipse, se reprodujo la misma lógica de clave/diccionario de `CacheDVH.cs` con objetos fake y un contador de "pedidos a ESAPI", verificando: dos pedidos iguales (mismo plan/estructura/presentación) cuentan como 1 sola llamada y devuelven el mismo objeto; distinta `VolumePresentation` sobre la misma estructura sí dispara un pedido nuevo (no comparte curvas en unidades distintas); otra estructura o otro plan (`plan2`, comparación de 2 planes) también disparan pedido nuevo, sin mezclarse; `Limpiar()` fuerza a pedir de nuevo. `dotnet run`: `TODOS LOS CHEQUEOS OK` (incluye las secciones 1-9 previas, sin regresiones).
+- No se pudo medir el tiempo real de análisis contra un `PlanSum` real (requiere Eclipse) — la reducción de llamadas a ESAPI (de N por estructura a 1) es la mejora esperada, pero el tiempo real ganado depende de cuántas restricciones por estructura tenga la plantilla en uso.
+
+### Conclusión
+
+- Analizar una plantilla contra un `PlanSum` ya no recalcula el DVH completo de una estructura una vez por cada restricción que la usa — se pide una sola vez por `(plan, estructura, presentación de volumen)` y se reusa entre todas las restricciones del mismo análisis.
+- Sin cambio de comportamiento clínico: mismo `DVHData` que antes (mismos parámetros `DoseValuePresentation.Absolute`/`binWidth=0.01`), solo se evita pedirlo repetido.
+- El `binWidth=0.01` (1cGy) se mantiene sin cambios — ya es el piso de precisión pedido por el usuario, agrandarlo arriesgaba error de interpolación en tramos curvos de la DVH a cambio de una ganancia de velocidad menor que la de esta cache (el cuello de botella real era la cantidad de llamadas, no la cantidad de bins por llamada).
+
+### Pendiente
+
+- Medición real en Eclipse del tiempo de análisis de un plan suma antes/después, con una plantilla típica (varias restricciones por estructura) para cuantificar la mejora.
+- Verificación end-to-end de que comparar dos planes (`Form2_DosPlanes`, con `plan`/`plan2` en el mismo análisis) sigue dando los mismos resultados que antes — la cache distingue `plan` de `plan2` por referencia, pero vale la pena confirmarlo con un caso real.
+
+---
+
+## 2026-09-10 (6) — doseRate/coincidenciaCamillas a tabla en txt, y deduplicar llamadas a GetDVHCumulativeData
+
+### Pedido
+
+Encarar los dos pendientes de bajo riesgo que se habían dejado explícitamente para una ronda aparte en la entrada (4): `Chequeos.doseRate`/`coincidenciaCamillas` (cadenas if/else largas) y las llamadas dobles a `GetDVHCumulativeData` por restricción. Para `doseRate`/`coincidenciaCamillas` se pidió además generar los txt de lookup (mismo esquema que `alfaBeta.txt`).
+
+### Antes
+
+- `Chequeos.doseRate`: cadena de `if/else if` anidados codificando "6X-SRS"→1000, VMAT→600, y para el resto un default de 400 con 3 excepciones por `TreatmentUnit.Id` (`CRC_EQ1`→320, `Varian-600C`→240, `"6oo C/D"`→300) — todo hardcodeado en C#, agregar/cambiar un equipo requería recompilar.
+- `Chequeos.coincidenciaCamillas`: 13 combinaciones camilla/equipo como `if/else if` con `return true` repetido, más un caso especial (BrainLAB en `D-2300CD`, válida con extensión H&N solo si `esRadioCirugia(plan)`) mezclado en el medio de la cadena.
+- `RestriccionBase.chequearSamplingCoverage()` volvía a pedirle a ESAPI `GetDVHCumulativeData(estructura, ...)` para leer `SamplingCoverage`, aun cuando la propia `analizarPlanEstructura()` (rama `PlanSum`, la comparación de dos planes) ya había pedido ese mismo `DVHData` un instante antes y descartaba el objeto quedándose solo con `.CurveData`/`.MeanDose`. Con `valorMedido` en NaN (el único caso en que `chequearSamplingCoverage` hace algo), eso era una llamada extra a ESAPI por restricción — evitable, no un bug.
+
+### Cambio
+
+- **`doseRate.txt`/`camillas.txt`** (raíz del proyecto, mismo esquema tab-delimited que `alfaBeta.txt`): a copiar por el usuario a `{Properties.Settings.Default.Path}\PlanExplorer\` (no se pudo escribir ahí directamente, es un share `\\Ariamevadb-svr\va_data$` distinto al de este repo). `doseRate.txt` tiene claves especiales `6X-SRS`/`VMAT`/`DEFAULT` + un `TreatmentUnit.Id` por línea; `camillas.txt` tiene `substring de camilla` + `equipo` por línea (match = `camilla.Contains(col1) && equipo == col2`).
+- `Chequeos.cs`: `doseRate()`/`coincidenciaCamillas()` ahora leen esas tablas (`doseRateEsperado()`/`lineasCamillas()`, cacheadas en un `string[]` estático tras la primera lectura, mismo patrón y manejo de error con `MessageBox` que `Estructura.AlfaBeta`). El caso especial BrainLAB/`D-2300CD` (depende de `esRadioCirugia(plan)`, no es un lookup fijo) se dejó hardcodeado, ahora como `esRadioCirugia(plan) == tieneExtensionHN` en vez de un `if/else` anidado de 4 ramas.
+- `RestriccionBase.cs`: se agregó `RegistrarDVHData(plan, estructura, dvhData)` que guarda `SamplingCoverage` cacheado junto con el `plan`/`estructura` que lo generaron; `chequearSamplingCoverage()` reusa ese valor si el `plan`/`estructura` pedidos coinciden con los últimos cacheados, y solo pide a ESAPI si no.
+- `RestriccionDosis.cs`, `RestriccionDosisMax.cs`, `RestriccionDosisMedia.cs` (las 2 sobrecargas), `RestriccionVolumen.cs` (las 2 sobrecargas), `RestriccionVolumenCritico.cs` (las 2 sobrecargas): cada rama que llamaba `.GetDVHCumulativeData(...).CurveData`/`.MeanDose` directo ahora primero guarda el `DVHData` en una variable y llama `RegistrarDVHData(...)` antes de extraer `CurveData`/`MeanDose`.
+- `RestriccionIndiceConformidad.cs`: **no se tocó** — su `analizarPlanEstructura` pide el DVH de la estructura BODY (no de la `estructura` de la fila), así que cachear ahí no serviría para el `chequearSamplingCoverage(plan, estructura)` posterior (que sí pregunta por `estructura`) — el cache simplemente no matchea y sigue pidiendo a ESAPI como antes, sin cambio de comportamiento.
+
+### Cómo se testeó
+
+- **Compilación completa** (`MSBuild ExploracionPlanes.csproj`): build OK, mismos warnings preexistentes de arquitectura MSIL/AMD64.
+- **`Tests/TestMejoras/Program.cs`**, sección 9 nueva: como `Beam`/`PlanSetup` no se pueden instanciar fuera de Eclipse, se reprodujo la lógica vieja (hardcodeada) y la nueva (por tabla, leyendo los `doseRate.txt`/`camillas.txt` reales del repo) con los mismos strings/doubles que reciben los métodos reales, comparando ambas para cada combinación relevante (6X-SRS, VMAT, cada equipo con DoseRate especial, equipo sin excepción; cada camilla/equipo válido de la tabla + uno inexistente). El caso especial BrainLAB/RC se verificó por separado (las 4 combinaciones de `esRadioCirugia`/extensión H&N). `dotnet run`: `TODOS LOS CHEQUEOS OK` (incluye las secciones 1-8 previas, sin regresiones).
+- El cacheo de `GetDVHCumulativeData` no tiene lógica de cálculo nueva (mismo valor de `SamplingCoverage`, solo se evita pedirlo dos veces) — no depende de ESAPI para ejecutar pero sí para instanciar `PlanSum`/`Structure`, así que no se aisló en un test; se verificó por lectura que el orden real de llamadas (`analizarPlanEstructura` antes de `chequearSamplingCoverage`, mismo `plan`/`estructura`) garantiza que el cache esté seteado cuando se lo consulta.
+
+### Conclusión
+
+- `doseRate`/`coincidenciaCamillas` pasan de cadenas de `if/else` a lookup por tabla externa — agregar un equipo nuevo o cambiar un DoseRate esperado ya no requiere tocar código ni recompilar, solo editar el txt en `{Path}\PlanExplorer\`.
+- Comparar dos planes (`Form2_DosPlanes`) ya no pide a ESAPI el mismo `DVHData` dos veces por restricción cuando `valorMedido` da NaN — ahora reusa el que ya se había pedido en `analizarPlanEstructura`.
+- Sin cambio de comportamiento clínico: mismos resultados de `doseRate`/`coincidenciaCamillas`/`chequearSamplingCoverage` que antes, verificado por el test de sección 9.
+
+### Pendiente
+
+- Copiar `doseRate.txt`/`camillas.txt` (generados en la raíz del repo) a `{Properties.Settings.Default.Path}\PlanExplorer\` en el share clínico real (`\\Ariamevadb-svr\va_data$`) — no accesible desde este entorno.
+- Verificación en Eclipse de que `doseRate`/`coincidenciaCamillas` siguen devolviendo los mismos avisos que antes con un plan real, y de que comparar dos planes (con alguna restricción en NaN) no cambia de resultado.
+
+---
+
 ## 2026-09-10 (5) — Base común para las 6 clases Restriccion* y deduplicación de Form2/Form2_DosPlanes
 
 ### Pedido

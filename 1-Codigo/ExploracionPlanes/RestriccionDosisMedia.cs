@@ -41,9 +41,7 @@ namespace ExploracionPlanes
 
         public override void analizarPlanEstructura(PlanningItem plan, Structure estructura)
         {
-            DoseValuePresentation doseValuePresentation = DoseValuePresentation.Absolute;
-            //plan.GetDVHCumulativeData(estructura, doseValuePresentation, VolumePresentation.Relative, 0.1).SamplingCoverage
-            valorMedido = Math.Round(plan.GetDVHCumulativeData(estructura, doseValuePresentation, VolumePresentation.Relative, 0.01).MeanDose.Dose / 100, 1);
+            valorMedido = Math.Round(CacheDVH.Obtener(plan, estructura, VolumePresentation.Relative).MeanDose.Dose / 100, 1);
             if (unidadValor == "%")
             {
                 valorMedido = Math.Round(valorMedido / prescripcionEstructura * 100,1); //extraigo en Gy y paso a porcentaje
@@ -52,8 +50,7 @@ namespace ExploracionPlanes
 
         public override void analizarPlanEstructura(PlanningItem plan, Structure estructura, double alfaBeta, int numeroFracciones)
         {
-            DoseValuePresentation doseValuePresentation = DoseValuePresentation.Absolute;
-            DVHPoint[] DVHData = plan.GetDVHCumulativeData(estructura, doseValuePresentation, VolumePresentation.Relative, 0.01).CurveData;
+            DVHPoint[] DVHData = CacheDVH.Obtener(plan, estructura, VolumePresentation.Relative).CurveData;
             double dmedia=0;
             double dmediaEQD2 = 0;
             for (int i=0;i<DVHData.Length-1;i++)

@@ -66,7 +66,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, DoseValuePresentation.Absolute, volumePresentation, 0.01).CurveData;
+                DVHPoint[] curveData = CacheDVH.Obtener(plan, estructura, volumePresentation).CurveData;
 
                 valorMedido = Math.Round(DVHDataExtensions_ESAPIX.GetVolumeAtDose(curveData, dosis),1);
             }
@@ -96,7 +96,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, DoseValuePresentation.Absolute, volumePresentation, 0.01).CurveData;
+                DVHPoint[] curveData = CacheDVH.Obtener(plan, estructura, volumePresentation).CurveData;
                 valorMedido = Math.Round(DVHDataExtensions_ESAPIX.GetVolumeAtDose(curveData, dosis), 1);
             }
         }

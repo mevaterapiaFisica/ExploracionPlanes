@@ -233,6 +233,7 @@ namespace ExploracionPlanes
 
         private void llenarDGVAnalisis()
         {
+            CacheDVH.Limpiar();
             if (plan is PlanSetup && ((PlanSetup)plan).Dose == null)
             {
                 MessageBox.Show("El plan no está calculado");

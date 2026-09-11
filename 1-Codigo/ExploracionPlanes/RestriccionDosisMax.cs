@@ -51,7 +51,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, doseValuePresentation, VolumePresentation.AbsoluteCm3, 0.01).CurveData;
+                DVHPoint[] curveData = CacheDVH.Obtener(plan, estructura, VolumePresentation.AbsoluteCm3).CurveData;
                 return Math.Round(DVHDataExtensions_ESAPIX.GetDoseAtVolume(curveData, volumenDosisMaxima).Dose / 100, 2);
             }
         }

@@ -416,6 +416,7 @@ namespace ExploracionPlanes
 
         private void llenarDGVAnalisis()
         {
+            CacheDVH.Limpiar();
             plantilla.nota = plantillaNotaOriginal;
             if (plan == null)
             {

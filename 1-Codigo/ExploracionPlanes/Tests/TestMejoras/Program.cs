@@ -364,6 +364,149 @@ chequear("RestriccionDosis: dosisEstaEnPorcentaje mira unidadValor ('%'->true, '
 chequear("RestriccionVolumen/VolumenCritico: dosisEstaEnPorcentaje mira unidadCorrespondiente, no unidadValor",
     DosisEstaEnPorcentajeVolumen("%") && !DosisEstaEnPorcentajeVolumen("Gy"));
 
+// ===== 9) doseRate/coincidenciaCamillas: if/else largos -> lookup por tabla (Chequeos.cs) =====
+// No se puede instanciar Beam/PlanSetup fuera de Eclipse, así que se reproduce cada lógica (vieja
+// hardcodeada vs nueva por tabla) con los mismos strings/doubles que reciben los métodos reales.
+Console.WriteLine("=== 9) doseRate/coincidenciaCamillas por tabla ===");
+
+double DoseRateEsperadoViejo(string energyMode, string mlcPlanType, string treatmentUnitId)
+{
+    if (energyMode == "6X-SRS") return 1000;
+    if (mlcPlanType == "VMAT") return 600;
+    if (treatmentUnitId == "CRC_EQ1") return 320;
+    if (treatmentUnitId == "Varian-600C") return 240;
+    if (treatmentUnitId == "6oo C/D") return 300;
+    return 400;
+}
+
+// Copia literal de Chequeos.doseRateEsperado, contra las líneas reales de doseRate.txt.
+string[] lineasDoseRate = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "doseRate.txt"));
+double DoseRateEsperadoNuevo(string clave, double valorPorDefecto)
+{
+    string coincidencia = lineasDoseRate.FirstOrDefault(s => s.Split('\t')[0] == clave);
+    if (coincidencia == null || !double.TryParse(coincidencia.Split('\t')[1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double valor))
+    {
+        return valorPorDefecto;
+    }
+    return valor;
+}
+double DoseRateEsperado(string energyMode, string mlcPlanType, string treatmentUnitId)
+{
+    if (energyMode == "6X-SRS") return DoseRateEsperadoNuevo("6X-SRS", 1000);
+    if (mlcPlanType == "VMAT") return DoseRateEsperadoNuevo("VMAT", 600);
+    return DoseRateEsperadoNuevo(treatmentUnitId, DoseRateEsperadoNuevo("DEFAULT", 400));
+}
+
+foreach (var caso in new[] {
+    ("6X-SRS", "", "cualquiera"),
+    ("", "VMAT", "cualquiera"),
+    ("", "ARC", "CRC_EQ1"),
+    ("", "ARC", "Varian-600C"),
+    ("", "ARC", "6oo C/D"),
+    ("", "ARC", "OtroEquipoNoListado"),
+})
+{
+    double viejo = DoseRateEsperadoViejo(caso.Item1, caso.Item2, caso.Item3);
+    double nuevo = DoseRateEsperado(caso.Item1, caso.Item2, caso.Item3);
+    chequear($"doseRate esperado igual viejo vs nuevo para ({caso.Item1},{caso.Item2},{caso.Item3}): {viejo}", viejo == nuevo);
+}
+
+// Copia literal de la parte "lookup" de Chequeos.coincidenciaCamillas (sin el caso especial BrainLAB/RC).
+string[] lineasCamillas = File.ReadAllLines(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "camillas.txt"));
+bool CoincidenciaCamillasViejo(string camilla, string equipo)
+{
+    if (camilla.Contains("Unipanel, large") && equipo == "PBA_6EX_730") return true;
+    if (camilla.Contains("Unipanel, large") && equipo == "6EX Viamonte") return true;
+    if (camilla.Contains("Unipanel, large") && equipo == "CL21EX") return true;
+    if (camilla.Contains("Unipanel, large") && equipo == "CRC_EQ1") return true;
+    if (camilla.Contains("Unipanel, large") && equipo == "Varian-600C") return true;
+    if (camilla.Contains("Unipanel, large") && equipo == "600 C / D") return true;
+    if (camilla.Contains("Unipanel, large") && equipo == "Varian 21 EX") return true;
+    if (camilla.Contains("IGRT") && equipo == "Equipo1") return true;
+    if (camilla.Contains("IGRT") && equipo == "Equipo3") return true;
+    if (camilla.Contains("IGRT") && equipo == "Equipo 2 6EX") return true;
+    if (camilla.Contains("BL_ICT") && equipo == "D-2300CD") return true;
+    if (camilla.Contains("QFix") && equipo == "EQ2_iX_827") return true;
+    if (camilla.Contains("Unipanel") && equipo == "QBA_600CD_523") return true;
+    return false;
+}
+bool CoincidenciaCamillasNuevo(string camilla, string equipo)
+{
+    foreach (string linea in lineasCamillas)
+    {
+        string[] campos = linea.Split('\t');
+        if (campos.Length < 2) continue;
+        if (camilla.Contains(campos[0]) && equipo == campos[1]) return true;
+    }
+    return false;
+}
+foreach (var caso in new[] {
+    ("Unipanel, large", "PBA_6EX_730"),
+    ("Unipanel, large", "Varian 21 EX"),
+    ("IGRT", "Equipo 2 6EX"),
+    ("BL_ICT", "D-2300CD"),
+    ("QFix", "EQ2_iX_827"),
+    ("Unipanel", "QBA_600CD_523"),
+    ("CamillaQueNoExiste", "EquipoQueNoExiste"),
+})
+{
+    bool viejo = CoincidenciaCamillasViejo(caso.Item1, caso.Item2);
+    bool nuevo = CoincidenciaCamillasNuevo(caso.Item1, caso.Item2);
+    chequear($"coincidenciaCamillas igual viejo vs nuevo para ({caso.Item1}, {caso.Item2}): {viejo}", viejo == nuevo);
+}
+
+// Caso especial BrainLAB/D-2300CD (depende de esRadioCirugia(plan), no de la tabla): sigue hardcodeado
+// en Chequeos.coincidenciaCamillas. Se verifica la regla `esRadioCirugia == tieneExtensionHN`
+// reproduce las 4 combinaciones del if/else original.
+bool BrainLabValido(bool esRadioCirugia, bool tieneExtensionHN) => esRadioCirugia == tieneExtensionHN;
+chequear("BrainLAB+D-2300CD: RC con extensión H&N -> válida", BrainLabValido(true, true));
+chequear("BrainLAB+D-2300CD: RC sin extensión H&N -> inválida", !BrainLabValido(true, false));
+chequear("BrainLAB+D-2300CD: no-RC con extensión H&N -> inválida", !BrainLabValido(false, true));
+chequear("BrainLAB+D-2300CD: no-RC sin extensión H&N -> válida", BrainLabValido(false, false));
+
+// ===== 10) CacheDVH: comparte DVHData entre restricciones de la misma estructura =====
+// No se puede instanciar PlanningItem/Structure/DVHData reales de ESAPI fuera de Eclipse, así que se
+// reproduce la misma lógica de clave/diccionario de CacheDVH.cs con objetos propios (fakes), contando
+// cuántas veces se "pide a ESAPI" para verificar que se dedupliquen los pedidos.
+Console.WriteLine("=== 10) CacheDVH: mismo DVHData reusado por (plan, estructura, volumePresentation) ===");
+
+int pedidosAEsapi = 0;
+var cacheFake = new Dictionary<(object plan, object estructura, string volumePresentation), object>();
+object ObtenerFake(object plan, object estructura, string volumePresentation)
+{
+    var clave = (plan, estructura, volumePresentation);
+    if (!cacheFake.TryGetValue(clave, out object dvhData))
+    {
+        pedidosAEsapi++;
+        dvhData = new object();
+        cacheFake[clave] = dvhData;
+    }
+    return dvhData;
+}
+void LimpiarFake() => cacheFake.Clear();
+
+object planA = new object(), planB = new object();
+object estrPTV = new object(), estrLung = new object();
+
+pedidosAEsapi = 0;
+var d1 = ObtenerFake(planA, estrPTV, "Relative");
+var d2 = ObtenerFake(planA, estrPTV, "Relative"); // misma restricción tipo, otra fila -> mismo pedido
+chequear("Dos pedidos iguales (mismo plan/estructura/presentación) -> 1 sola llamada a ESAPI", pedidosAEsapi == 1);
+chequear("Devuelve el mismo objeto DVHData cacheado", ReferenceEquals(d1, d2));
+
+var d3 = ObtenerFake(planA, estrPTV, "AbsoluteCm3"); // misma estructura, otra presentación (ej. RestriccionVolumen en cm3)
+chequear("Misma estructura, distinta VolumePresentation -> pedido nuevo (no comparte curva con otras unidades)", pedidosAEsapi == 2 && !ReferenceEquals(d1, d3));
+
+var d4 = ObtenerFake(planA, estrLung, "Relative"); // otra estructura del mismo plan
+chequear("Otra estructura del mismo plan -> pedido nuevo", pedidosAEsapi == 3 && !ReferenceEquals(d1, d4));
+
+var d5 = ObtenerFake(planB, estrPTV, "Relative"); // mismo nombre de estructura pero otro plan (ej. plan2 en comparación de 2 planes)
+chequear("Misma estructura pero plan distinto (plan2) -> pedido nuevo, no se mezclan los dos planes", pedidosAEsapi == 4 && !ReferenceEquals(d1, d5));
+
+LimpiarFake();
+var d6 = ObtenerFake(planA, estrPTV, "Relative");
+chequear("Limpiar() antes del próximo análisis fuerza a pedir de nuevo (no arrastra DVHData del plan/paciente anterior)", pedidosAEsapi == 5 && !ReferenceEquals(d1, d6));
+
 Console.WriteLine();
 if (huboError)
 {

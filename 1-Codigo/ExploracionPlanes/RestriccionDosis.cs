@@ -69,7 +69,7 @@ namespace ExploracionPlanes
             }
             else
             {
-                DVHPoint[] curveData = ((PlanSum)plan).GetDVHCumulativeData(estructura, doseValuePresentation, volumePresentation, 0.01).CurveData;
+                DVHPoint[] curveData = CacheDVH.Obtener(plan, estructura, volumePresentation).CurveData;
                 if (valorCorrespondiente==100 && unidadCorrespondiente=="%")
                 {
                     double volumen = 100 * (1 - 0.035 / estructura.Volume);

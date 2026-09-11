@@ -234,6 +234,7 @@ namespace ExploracionPlanes
 
         private void llenarDGVAnalisis()
         {
+            CacheDVH.Limpiar();
             DGV_Análisis.ReadOnly = true;
             if (pacienteNro==0)
             {

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.IO;
+using System.Globalization;
 using System.Text.RegularExpressions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Windows.Forms;
 using VMS.TPS.Common.Model.Types;
 using VMS.TPS.Common.Model.API;
 
@@ -214,42 +216,53 @@ namespace ExploracionPlanes
             return texto;
         }
 
+        private static string[] _doseRateLineas;
+
+        // Lee doseRate.txt (clave\tDoseRate esperado) una sola vez. Claves especiales "6X-SRS"/"VMAT"/
+        // "DEFAULT"; el resto de las líneas son TreatmentUnit.Id (solo se consultan para campos que no
+        // son SRS ni VMAT). Mismo esquema/manejo de errores que Estructura.AlfaBeta con alfaBeta.txt.
+        private static double doseRateEsperado(string clave, double valorPorDefecto)
+        {
+            if (_doseRateLineas == null)
+            {
+                try
+                {
+                    string path = Properties.Settings.Default.Path + @"\PlanExplorer\doseRate.txt";
+                    _doseRateLineas = File.ReadAllLines(path);
+                }
+                catch (Exception exp)
+                {
+                    MessageBox.Show("No se pudo leer doseRate.txt, se van a usar los valores de DoseRate por defecto:\n" + exp.Message);
+                    _doseRateLineas = new string[0];
+                }
+            }
+            string coincidencia = _doseRateLineas.FirstOrDefault(s => s.Split('\t')[0] == clave);
+            if (coincidencia == null || !double.TryParse(coincidencia.Split('\t')[1], NumberStyles.Float, CultureInfo.InvariantCulture, out double valor))
+            {
+                return valorPorDefecto;
+            }
+            return valor;
+        }
+
         public static string doseRate(Beam campo)
         {
             string texto = "";
+            double esperado;
             if (campo.EnergyModeDisplayName == "6X-SRS")
             {
-                if (campo.DoseRate != 1000)
-                {
-                    texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
-                }
+                esperado = doseRateEsperado("6X-SRS", 1000);
             }
             else if (campo.MLCPlanType.Equals(MLCPlanType.VMAT))
             {
-                if (campo.DoseRate != 600)
-                {
-                    texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
-                }
+                esperado = doseRateEsperado("VMAT", 600);
             }
             else
             {
-                if (campo.DoseRate != 400)
-                {
-                    if (campo.TreatmentUnit.Id == "CRC_EQ1" && campo.DoseRate != 320)
-                    {
-                        texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
-                    }
-                    else if (campo.TreatmentUnit.Id == "Varian-600C" && campo.DoseRate != 240)
-                    {
-                        texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
-                    }
-                    else if (campo.TreatmentUnit.Id == "6oo C/D" && campo.DoseRate != 300)
-                    {
-                        texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
-                    }
-                    else
-                        texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
-                }
+                esperado = doseRateEsperado(campo.TreatmentUnit.Id, doseRateEsperado("DEFAULT", 400));
+            }
+            if (campo.DoseRate != esperado)
+            {
+                texto += "\n" + campo.Id + ": el DoseRate no es el indicado";
             }
             return texto;
         }
@@ -493,90 +506,50 @@ namespace ExploracionPlanes
         }
 
         #region metodos auxiliares
+        private static string[] _camillasLineas;
+
+        // Lee camillas.txt (substring de camilla\tequipo, una fila por combinación válida), una sola
+        // vez. Mismo esquema/manejo de errores que Estructura.AlfaBeta con alfaBeta.txt.
+        private static string[] lineasCamillas()
+        {
+            if (_camillasLineas == null)
+            {
+                try
+                {
+                    string path = Properties.Settings.Default.Path + @"\PlanExplorer\camillas.txt";
+                    _camillasLineas = File.ReadAllLines(path);
+                }
+                catch (Exception exp)
+                {
+                    MessageBox.Show("No se pudo leer camillas.txt, ninguna combinación camilla/equipo se va a dar por válida:\n" + exp.Message);
+                    _camillasLineas = new string[0];
+                }
+            }
+            return _camillasLineas;
+        }
+
         public static bool coincidenciaCamillas(string camilla, string equipo, PlanSetup plan)
         {
-            if (camilla.Contains("Unipanel, large") && equipo == "PBA_6EX_730")
+            // Caso especial: la misma camilla BrainLAB en D-2300CD es válida con la extensión H&N solo
+            // si el plan es de radiocirugía (y al revés) - depende del plan, no es un lookup fijo.
+            if (camilla.Contains("BrainLAB") && equipo == "D-2300CD")
             {
-                return true;
+                bool tieneExtensionHN = camilla.Contains("H&N Extension");
+                return esRadioCirugia(plan) == tieneExtensionHN;
             }
-            else if (camilla.Contains("Unipanel, large") && equipo == "6EX Viamonte")
+            foreach (string linea in lineasCamillas())
             {
-                return true;
-            }
-            else if (camilla.Contains("Unipanel, large") && equipo == "CL21EX")
-            {
-                return true;
-            }
-            else if (camilla.Contains("Unipanel, large") && equipo == "CRC_EQ1")
-            {
-                return true;
-            }
-            else if (camilla.Contains("Unipanel, large") && equipo == "Varian-600C")
-            {
-                return true;
-            }
-            else if (camilla.Contains("Unipanel, large") && equipo == "600 C / D")     //Equipo 1 SJ
-            {
-                return true;
-            }
-            else if (camilla.Contains("Unipanel, large") && equipo == "Varian 21 EX")  //Equipo 2 SJ
-            {
-                return true;
-            }
-            else if (camilla.Contains("IGRT") && equipo == "Equipo1")
-            {
-                return true;
-            }
-            else if (camilla.Contains("IGRT") && equipo == "Equipo3")
-            {
-                return true;
-            }
-            else if (camilla.Contains("IGRT") && equipo == "Equipo 2 6EX")
-            {
-                return true;
-            }
-            else if (camilla.Contains("BrainLAB") && equipo == "D-2300CD")
-            {
-                if (esRadioCirugia(plan))
+                string[] campos = linea.Split('\t');
+                if (campos.Length < 2)
                 {
-                    if (camilla.Contains("H&N Extension"))
-                    {
-                        return true;
-                    }
-                    else
-                    {
-                        return false;
-                    }
+                    continue;
                 }
-                else
+                if (camilla.Contains(campos[0]) && equipo == campos[1])
                 {
-                    if (camilla.Contains("H&N Extension"))
-                    {
-                        return false;
-                    }
-                    else
-                    {
-                        return true;
-                    }
+                    return true;
                 }
             }
-            else if (camilla.Contains("BL_ICT") && equipo == "D-2300CD")
-            {
-                return true;
-            }
-            else if (camilla.Contains("QFix") && equipo == "EQ2_iX_827")
-            {
-                return true;
-            }
-            else if (camilla.Contains("Unipanel") && equipo == "QBA_600CD_523")
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-
+            return false;
         }
 
         public static bool camposFusionables(Beam campo1, Beam campo2)

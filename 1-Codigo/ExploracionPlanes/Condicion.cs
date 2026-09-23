@@ -40,7 +40,8 @@ namespace ExploracionPlanes
             }
             else if (tipo == Tipo.NumFx)
             {
-                return Convert.ToDouble(((PlanSetup)planActual).UniqueFractionation.NumberOfFractions);
+                PlanSetup planSetup = planActual is PlanSetup ? (PlanSetup)planActual : ((PlanSum)planActual).PlanSetups.First();
+                return Convert.ToDouble(planSetup.NumeroFracciones());
             }
             else //dejo abierto para agregar otros tipos
             {

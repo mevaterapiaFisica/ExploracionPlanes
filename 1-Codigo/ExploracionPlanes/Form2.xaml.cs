@@ -442,7 +442,7 @@ namespace ExploracionPlanes
                 string extra = "";
                 if (planSeleccionado() is PlanSetup planSetupTitulo)
                 {
-                    extra += " + " + (int)planSetupTitulo.UniqueFractionation.NumberOfFractions + " fx";
+                    extra += " + " + (int)planSetupTitulo.NumeroFracciones() + " fx";
                 }
                 if (ptvsMatcheados.Count > 0)
                 {
@@ -513,7 +513,7 @@ namespace ExploracionPlanes
                                     break;
                                 }
                             }
-                            int numeroFracciones = (int)((PlanSetup)planSeleccionado()).UniqueFractionation.NumberOfFractions;
+                            int numeroFracciones = (int)((PlanSetup)planSeleccionado()).NumeroFracciones();
                             restriccion.analizarPlanEstructura(planRestriccion, estructura, alfaBeta, numeroFracciones);
                             if (!estructurasConEQD2.Contains(estructura.Id))
                             {
@@ -820,7 +820,7 @@ namespace ExploracionPlanes
                     MessageBox.Show("No funciona para planes suma");
                     CHB_EvaluarConEQD2.IsChecked = false;
                 }
-                else if (((PlanSetup)planSeleccionado()).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200)
+                else if (((PlanSetup)planSeleccionado()).DosisPorFraccionEnPuntoRefPrimario().Dose == 200)
                 {
                     MessageBox.Show("La dosis día es de 200cGy");
                     CHB_EvaluarConEQD2.IsChecked = false;

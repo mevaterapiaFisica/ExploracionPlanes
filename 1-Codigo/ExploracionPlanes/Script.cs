@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Windows.Forms;
+using System.Windows.Interop;
 using VMS.TPS.Common.Model.API;
 
 
@@ -27,6 +29,17 @@ namespace VMS.TPS
             Thread.CurrentThread.CurrentUICulture = current;
 
             ExploracionPlanes.Main main = new ExploracionPlanes.Main(true, context.Patient, context.PlanSetup, context.CurrentUser,context.PlanSumsInScope,context.PlansInScope);
+            // ponytail: el plugin corre in-process dentro de Eclipse (no es un proceso separado), así
+            // que MainWindowHandle es la ventana de Eclipse. Sin esto, Main (y por herencia toda la
+            // cadena de diálogos de DialogoWpf, que la usa como primera "ventana dueña") queda sin
+            // relación de Z-order con Eclipse - Alt-Tab la deja huérfana y hay que matar el proceso
+            // para volver a verla (mismo síntoma que el freeze de UI.md, pero un nivel más arriba:
+            // ahí el problema era diálogo-hijo sin dueño Main, acá es Main sin dueño Eclipse).
+            IntPtr ventanaEclipse = Process.GetCurrentProcess().MainWindowHandle;
+            if (ventanaEclipse != IntPtr.Zero)
+            {
+                new WindowInteropHelper(main).Owner = ventanaEclipse;
+            }
             main.ShowDialog();
         }
     }

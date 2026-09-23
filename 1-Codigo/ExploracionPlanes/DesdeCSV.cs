@@ -480,7 +480,11 @@ namespace ExploracionPlanes
                 }
                 else if (Linea[4].ToLower().Contains("mean") || Linea[4].ToLower().Contains("med"))
                 {
-                    string unidadValor = Linea[5].Contains("Gy") ? "Gy" : "%";
+                    // El valor puede venir de Linea[5] (optimal) O de Linea[6] (mandatory) segun cual este
+                    // vacia -- mirar solo Linea[5] hacia "Gy" y asumir "%" en cualquier otro caso (incluida
+                    // Linea[5] vacia) etiquetaba como "%" filas que en realidad son en Gy (el valor real
+                    // estaba en Linea[6]). Default a "Gy" (la gran mayoria), "%" solo si aparece explicito.
+                    string unidadValor = (Linea[5].Contains("%") || Linea[6].Contains("%")) ? "%" : "Gy";
                     restricciones.Add(RestriccionConsortium(new RestriccionDosisMedia(), estructura, Linea, unidadValor, "cm3", double.NaN, condicion));
                 }
                 else if (Linea[4].ToLower().Contains("cc"))
@@ -488,7 +492,8 @@ namespace ExploracionPlanes
                     double valorCorrespondienteUK = Dbl(Linea[4].Replace("cc", "").Replace("D", "").Replace("*", "").Trim());
                     if (!double.IsNaN(valorCorrespondienteUK))
                     {
-                        string unidadValor = Linea[5].Contains("Gy") ? "Gy" : "%";
+                        // Mismo bug que en la rama "mean" de arriba: el valor real puede estar en Linea[6].
+                        string unidadValor = (Linea[5].Contains("%") || Linea[6].Contains("%")) ? "%" : "Gy";
                         if (Math.Abs(valorCorrespondienteUK - 0.035) < 0.001)
                         {
                             // D0.035cc es la convencion clinica de "dosis de punto" = Dmax, no una Dosis

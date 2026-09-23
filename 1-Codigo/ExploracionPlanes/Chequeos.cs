@@ -621,7 +621,7 @@ namespace ExploracionPlanes
                 {
                     return true;
                 }
-                else if (plan.Beams.First().MLCPlanType == MLCPlanType.VMAT && plan.UniqueFractionation.PrescribedDosePerFraction.Dose > 390) //es VMAt y el origen es dicom y la dosis prescripta es >390cGy
+                else if (plan.Beams.First().MLCPlanType == MLCPlanType.VMAT && plan.DosisPrescriptaPorFraccion().Dose > 390) //es VMAt y el origen es dicom y la dosis prescripta es >390cGy
                 {
                     if (plan.StructureSet.Structures.Any(s => s.Id.Contains("Brain")) || plan.StructureSet.Structures.Any(s => s.Id.Contains("Cerebro"))) //hay alguna estructura que contiene Brain o cerebro
                     {

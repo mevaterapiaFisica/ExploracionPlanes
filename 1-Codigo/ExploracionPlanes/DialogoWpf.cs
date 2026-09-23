@@ -30,6 +30,13 @@ namespace ExploracionPlanes
         private Button botonMaxRestore;
         private Button botonCerrar;
 
+        // ponytail: lista propia de ventanas abiertas en vez de System.Windows.Application.Current.Windows.
+        // En modo plugin de Eclipse (Script.cs) nunca se crea un System.Windows.Application, así que
+        // Application.Current da null y el fallback de más abajo nunca encontraba dueño - reaparecía
+        // el freeze de Alt-Tab (ver comentario de clase) pero solo corriendo dentro de Eclipse, no en
+        // el modo standalone (Program.cs sí crea un Application).
+        private static readonly System.Collections.Generic.List<Window> VentanasAbiertas = new System.Collections.Generic.List<Window>();
+
         public DialogoWpf()
         {
             var activo = System.Windows.Forms.Form.ActiveForm;
@@ -39,17 +46,24 @@ namespace ExploracionPlanes
             }
             else
             {
-                // ponytail: desde que Main es WPF (ya no WinForms), ActiveForm siempre da null al
-                // abrir un diálogo desde ella — sin este fallback reaparece el freeze por falta de
-                // owner que este archivo ya arregló una vez (ver comentario de clase).
-                Window ventanaDueña = System.Windows.Application.Current?.Windows.OfType<Window>()
-                    .FirstOrDefault(w => w.IsActive)
-                    ?? System.Windows.Application.Current?.Windows.OfType<Window>().LastOrDefault(w => w != this);
+                // La última ventana abierta antes de esta es su dueña: los diálogos de esta app se
+                // abren siempre de forma modal y secuencial, nunca en paralelo.
+                // Main abre FormChequeos/PlanesSumaContext desde su PROPIO constructor, antes de
+                // llamar a Main.ShowDialog() (eso pasa recién después, en Script.cs) - en ese momento
+                // Main todavía no tiene handle nativo. `WindowInteropHelper(ventanaDueña).Handle` sin
+                // EnsureHandle() da IntPtr.Zero en ese caso (Owner quedaba sin setear); la propiedad
+                // Owner (WPF managed) tampoco sirve, tira InvalidOperationException si la dueña nunca
+                // se mostró ("Cannot set Owner property to a Window that has not been shown
+                // previously"). EnsureHandle() fuerza la creación del HWND nativo de la dueña SIN
+                // mostrarla (no la hace visible), que es justo lo que hace falta acá.
+                Window ventanaDueña = VentanasAbiertas.LastOrDefault();
                 if (ventanaDueña != null)
                 {
-                    new WindowInteropHelper(this).Owner = new WindowInteropHelper(ventanaDueña).Handle;
+                    new WindowInteropHelper(this).Owner = new WindowInteropHelper(ventanaDueña).EnsureHandle();
                 }
             }
+            VentanasAbiertas.Add(this);
+            Closed += (s, e) => VentanasAbiertas.Remove(this);
             Loaded += (s, e) => BuscarPrimerCampoDeTexto(this)?.Focus();
 
             // WindowStyle por default (SingleBorderWindow) + WindowChrome con CaptionHeight=0 depende

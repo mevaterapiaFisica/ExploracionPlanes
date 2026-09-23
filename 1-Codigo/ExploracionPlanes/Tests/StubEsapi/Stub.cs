@@ -84,6 +84,8 @@ namespace VMS.TPS.Common.Model.API
     public class Fractionation
     {
         public double NumberOfFractions { get; set; }
+        public DoseValue PrescribedDosePerFraction { get; set; } = DoseValue.UndefinedDose();
+        public DoseValue DosePerFractionInPrimaryRefPoint { get; set; } = DoseValue.UndefinedDose();
     }
 
     public abstract class PlanningItem
@@ -98,6 +100,25 @@ namespace VMS.TPS.Common.Model.API
     public class PlanSetup : PlanningItem
     {
         public Fractionation UniqueFractionation { get; set; } = new Fractionation();
+
+        // Aplanado equivalente a Eclipse 15.6/18.2 (ver EsapiCompat.cs), delega en UniqueFractionation
+        // para que setear una u otra forma en un test actualice la misma data.
+        public double NumberOfFractions
+        {
+            get => UniqueFractionation.NumberOfFractions;
+            set => UniqueFractionation.NumberOfFractions = value;
+        }
+        public DoseValue PrescribedDosePerFraction
+        {
+            get => UniqueFractionation.PrescribedDosePerFraction;
+            set => UniqueFractionation.PrescribedDosePerFraction = value;
+        }
+        public DoseValue DosePerFractionInPrimaryRefPoint
+        {
+            get => UniqueFractionation.DosePerFractionInPrimaryRefPoint;
+            set => UniqueFractionation.DosePerFractionInPrimaryRefPoint = value;
+        }
+
         public List<Beam> Beams { get; set; } = new List<Beam>();
         public Course Course { get; set; } = new Course();
 

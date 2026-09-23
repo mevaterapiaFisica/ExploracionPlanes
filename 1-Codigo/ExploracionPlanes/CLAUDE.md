@@ -15,11 +15,41 @@ cualquier bug en el cálculo de dosis/volumen tiene impacto directo en pacientes
 
 ## Compilar
 
-No hay `dotnet build` para el proyecto principal (framework .NET viejo + refs ESAPI). Usar MSBuild:
+No hay `dotnet build` para el proyecto principal (framework .NET viejo + refs ESAPI). El proyecto
+principal existe como **3 `.csproj` separados**, uno por versión de Eclipse soportada, todos
+apuntando a los mismos archivos fuente (misma lista de `<Compile>`/`<Page>` — al agregar un archivo
+nuevo, agregarlo a los 3): `ExploracionPlanes.Eclipse13_6.csproj`, `ExploracionPlanes.Eclipse15_6.csproj`,
+`ExploracionPlanes.Eclipse18_2.csproj`. Cada uno referencia sus propias DLL de ESAPI desde
+`lib/ESAPI/<version>/` (no versionadas en git — son binarios propietarios de Varian, copiarlas ahí
+manualmente desde la instalación real de esa versión de Eclipse antes de compilar). Cada proyecto
+genera SIEMPRE dos outputs (no dos `.csproj` por tipo, sino overrides de `-p:` en la misma build):
+`ExploracionPlanes.esapi.dll` (Library, para copiar como plugin en Eclipse) y `ExploracionPlanes.exe`
+(standalone, entry point `ExploracionPlanes.Program`). Usar `build.ps1` (hace las 2 compilaciones por
+versión, con `IntermediateOutputPath` separado por tipo — necesario porque si comparten `obj\`, el
+incremental clean de MSBuild borra los archivos de la build anterior):
+
+```powershell
+.\build.ps1 13_6
+.\build.ps1 15_6
+.\build.ps1 18_2
+.\build.ps1 13_6 -Configuration Release
+```
+
+Salida: `bin\Eclipse<version>\x64\<Configuration>\ExploracionPlanes.esapi.dll` y `...\ExploracionPlanes.exe`.
+
+Si hace falta compilar un solo output a mano (sin el script), MSBuild acepta overridear `OutputType`/
+`AssemblyName`/`StartupObject`/`IntermediateOutputPath` por línea de comando sin tocar el `.csproj`:
 
 ```
-"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" ExploracionPlanes.csproj /p:Configuration=Debug
+"C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Current\Bin\amd64\MSBuild.exe" ExploracionPlanes.Eclipse13_6.csproj -p:Configuration=Debug -p:Platform=x64
 ```
+
+(sin overrides, compila con el `OutputType=Library`/`AssemblyName=ExploracionPlanes` que trae el
+`.csproj` por default — no es ninguno de los 2 outputs finales, usar `build.ps1` para eso).
+
+Cada `.csproj` define su propia constante de compilación (`ECLIPSE13_6`/`ECLIPSE15_6`/`ECLIPSE18_2`)
+para el caso — excepcional — de que una API de ESAPI difiera entre versiones sin un mínimo común
+denominador; usar `#if ECLIPSE1x_x` solo ahí, lo más cerca posible del punto de uso, no esparcido.
 
 Warnings de arquitectura MSIL/AMD64 son preexistentes y esperables (refs de ESAPI son AMD64).
 

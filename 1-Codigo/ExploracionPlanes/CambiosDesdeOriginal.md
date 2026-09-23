@@ -1,29 +1,17 @@
-# Cambios desde el proyecto original (WinForms, 2021)
+# Cambios desde el proyecto original
 
 Resumen de todo lo hecho sobre el ExploracionPlanes original en WinForms (2021-2022), hasta la migración completa a WPF y las mejoras posteriores (2026).
 
 ## Cambios para usuarios
 
-- **Prescripciones recordadas**: la app ahora recuerda qué prescripción se eligió por estructura, y las predefinidas cargan automáticamente Sb en mama.
-- **Import desde CSV**: soporte para leer datos desde archivo CSV.
+- **Prescripciones recordadas**: la app ahora recuerda qué prescripción se eligió por estructura.
 - **Matcheo automático de estructuras mejorado**: sugiere la estructura correcta aunque el nombre no sea exacto (ordenado por parecido), y no se rompe si a una estructura le cambiaron el nombre en Eclipse.
 - **Memoria por plan**: matcheo, prescripción y plantilla elegidos se recuerdan por plan (antes se perdían si el structure set cambiaba); si no hay memoria, usa el plan más reciente del paciente.
-- **Duplicar estructura**: nuevo botón para asignar una segunda estructura real del plan a los mismos constraints (útil para pares bilaterales, ej. riñón izq/der). Incluye botón "Eliminar duplicado".
+- **Duplicar estructura**: nuevo botón para asignar una segunda estructura real del plan a los mismos constraints (útil para pares bilaterales, ej. riñón izq/der o para múltiples PTVs). Incluye botón "Eliminar duplicado".
 - **Ocultar restricciones no analizadas**: checkbox para no ver en la tabla las restricciones que no aplican (tildado por defecto).
 - **EQD2**: soporte agregado en comparación de dos planes (antes solo estaba en el análisis de un plan). Se corrigió que las restricciones en % (dosis, dosis máxima, dosis media, volumen) no estaban usando el valor convertido a EQD2 cuando estaba habilitado, ni en el modo de un plan ni en el de dos.
-- **Comparación de dos planes**: selección de los 2 planes ahora se hace tildando en la lista (antes trataba de adivinar cuál era el segundo plan buscando "cam" en el nombre).
 - **Interfaz visual renovada**: toda la aplicación pasó de las ventanas grises clásicas de Windows a un diseño propio, con barra de título de la marca (antes WinForms, ahora WPF) en las 14 ventanas.
-- **Corrección de bugs encontrados con el uso real** (visibles en Eclipse):
-  - Duplicar una estructura a veces no tomaba la fila elegida.
-  - El combo para elegir la estructura correcta a veces abría salteado al final de la lista.
-  - Al duplicar una estructura, a veces no se le asignaba prescripción y mostraba "Infinity%".
-  - Cerrar y reabrir un paciente a veces generaba un error.
-  - Cerrar una ventana secundaria (hijo) a veces cerraba toda la aplicación.
-  - Botón de comparar planes quedaba habilitado sin haber elegido plantilla.
-  - Con Windows configurado en español, escribir una dosis o alfa/beta con punto decimal podía leerse hasta 1000 veces mal sin avisar.
-- **Ajustes de tamaño/tipografía** en varias ventanas pedidos tras revisar capturas reales (texto que quedaba apretado o cortado en botones).
-- Queda pendiente, documentado y no resuelto (a pedido): un caso raro donde cerrar la ventana de análisis con login manual a Eclipse cierra toda la app (falla de Eclipse, no de esta app).
-- Queda pendiente: pedir la prescripción solo a PTV/CTV y no a órganos de riesgo (ambigüedad sin resolver aún).
+- **Plantillas únicas separables por fraccionamiento**: pensadas para SBRT y radiocirugía (RC), donde los constraints dependen del número de fracciones.
 
 ## Cambios técnicos
 

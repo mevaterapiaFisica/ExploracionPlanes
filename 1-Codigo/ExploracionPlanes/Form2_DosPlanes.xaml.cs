@@ -268,7 +268,7 @@ namespace ExploracionPlanes
                 string extra = "";
                 if (planSeleccionado() is PlanSetup planSetupTitulo)
                 {
-                    extra += " + " + (int)planSetupTitulo.UniqueFractionation.NumberOfFractions + " fx";
+                    extra += " + " + (int)planSetupTitulo.NumeroFracciones() + " fx";
                 }
                 if (ptvsMatcheados.Count > 0)
                 {
@@ -387,7 +387,7 @@ namespace ExploracionPlanes
                 if (CHB_EvaluarConEQD2.IsChecked == true)
                 {
                     alfaBeta = alfaBetaDeEstructura(estructura.Id);
-                    int numeroFraccionesPlan1 = (int)((PlanSetup)plan).UniqueFractionation.NumberOfFractions;
+                    int numeroFraccionesPlan1 = (int)((PlanSetup)plan).NumeroFracciones();
                     restriccion.analizarPlanEstructura(planRestriccion, estructura, alfaBeta, numeroFraccionesPlan1);
                     if (!estructurasConEQD2.Contains(estructura.Id))
                     {
@@ -437,7 +437,7 @@ namespace ExploracionPlanes
                 {
                     if (CHB_EvaluarConEQD2.IsChecked == true)
                     {
-                        int numeroFraccionesPlan2 = (int)((PlanSetup)plan2).UniqueFractionation.NumberOfFractions;
+                        int numeroFraccionesPlan2 = (int)((PlanSetup)plan2).NumeroFracciones();
                         restriccion.analizarPlanEstructura(plan2Restriccion, estructura2, alfaBeta, numeroFraccionesPlan2);
                     }
                     else
@@ -707,8 +707,8 @@ namespace ExploracionPlanes
                     MessageBox.Show("No funciona para planes suma");
                     CHB_EvaluarConEQD2.IsChecked = false;
                 }
-                else if (((PlanSetup)plan).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200
-                    || ((PlanSetup)plan2).UniqueFractionation.DosePerFractionInPrimaryRefPoint.Dose == 200)
+                else if (((PlanSetup)plan).DosisPorFraccionEnPuntoRefPrimario().Dose == 200
+                    || ((PlanSetup)plan2).DosisPorFraccionEnPuntoRefPrimario().Dose == 200)
                 {
                     MessageBox.Show("La dosis día es de 200cGy en alguno de los dos planes");
                     CHB_EvaluarConEQD2.IsChecked = false;

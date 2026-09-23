@@ -59,10 +59,7 @@ namespace ExploracionPlanes
                 texto += Chequeos.chequeos(planContext, false);
                 new FormChequeos(texto).ShowDialog();
                 Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
-                int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
-                LB_Plantillas.UnselectAll();
-                LB_Plantillas.SelectedIndex = indice;
-                enfocarPlantillaSeleccionada();
+                seleccionarPlantillaAutomatica(plantilla);
             }
             else if (hayContext && pacienteContext == null)
             {
@@ -87,10 +84,7 @@ namespace ExploracionPlanes
                     texto += Chequeos.chequeos(planContext, true);
                     new FormChequeos(texto).ShowDialog();
                     Plantilla plantilla = Plantilla.SeleccionarAutomaticamentePlantilla(planContext, pacienteContext);
-                    int indice = Plantilla.leerPlantillas().FindIndex(p => p.path == plantilla.path);
-                    LB_Plantillas.UnselectAll();
-                    LB_Plantillas.SelectedIndex = indice;
-                    enfocarPlantillaSeleccionada();
+                    seleccionarPlantillaAutomatica(plantilla);
                 }
                 else
                 {
@@ -98,6 +92,20 @@ namespace ExploracionPlanes
                     Close();
                 }
             }
+        }
+
+        // El indice de Plantilla.leerPlantillas() (lista completa, recien leida de disco) no coincide
+        // con el de LB_Plantillas.ItemsSource (lista filtrada por CHB_MostrarOcultas/TB_FiltroPlantillas):
+        // usar SelectedIndex con ese indice seleccionaba la plantilla equivocada o ninguna si el indice
+        // quedaba fuera de rango. Se matchea por path directo contra los items realmente listados.
+        // SeleccionarAutomaticamentePlantilla ya descarta las ocultas al elegir (incluida la recordada
+        // en memoria, si se oculto entre una instancia y otra), asi que la ganadora siempre deberia
+        // estar en ItemsSource; el FirstOrDefault (y el posible null) quedan solo como resguardo.
+        private void seleccionarPlantillaAutomatica(Plantilla plantilla)
+        {
+            LB_Plantillas.UnselectAll();
+            LB_Plantillas.SelectedItem = ((List<Plantilla>)LB_Plantillas.ItemsSource)?.FirstOrDefault(p => p.path == plantilla.path);
+            enfocarPlantillaSeleccionada();
         }
 
         // Preseleccionar la plantilla no alcanza para que se vea: si queda fuera del área visible

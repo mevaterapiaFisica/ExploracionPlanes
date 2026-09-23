@@ -4,6 +4,235 @@ Registro de tests hechos sobre cambios de código funcional. Cada entrada docume
 
 ---
 
+## 2026-09-23 — Fix preselección de plantilla al correr desde script (context=True)
+
+### Pedido
+
+Corriendo desde script (context=True) no preselecciona bien la plantilla al inicio (a veces ni
+siquiera selecciona una), y al volver a correr no recuerda la plantilla seleccionada la vez anterior.
+
+### Causa
+
+Dos bugs combinados:
+
+1. En `Main.xaml.cs`, al iniciar con contexto se calculaba la plantilla ganadora con
+   `Plantilla.SeleccionarAutomaticamentePlantilla(...)` y se buscaba su índice en
+   `Plantilla.leerPlantillas()` (lista COMPLETA, releída de disco), pero ese índice se aplicaba como
+   `LB_Plantillas.SelectedIndex` sobre `LB_Plantillas.ItemsSource`, que es una lista FILTRADA (oculta
+   las plantillas con `Visible=false`, salvo `CHB_MostrarOcultas` tildado). Si había plantillas ocultas
+   antes de la ganadora, el índice quedaba corrido: seleccionaba otra plantilla distinta, o ninguna si
+   el índice caía fuera del rango de la lista filtrada (más corta).
+2. En `Plantillla.cs`, `SeleccionarAutomaticamentePlantilla` buscaba la ganadora (por memoria recordada
+   o por coincidencia de estructuras) sobre TODAS las plantillas, incluidas las ocultas — no solo la
+   recordada en memoria podía ser una oculta (si se ocultó entre una instancia y otra), sino que el
+   propio matcheo por coincidencia de estructuras podía preferir una oculta. Esa ganadora nunca iba a
+   encontrarse en `LB_Plantillas.ItemsSource` (solo visibles), por más que se arreglara (1).
+
+Como `BT_AplicarAUnPlan_Click` solo guarda la memoria (`Plantilla.GuardarSeleccion`) del nombre de
+`plantillaSeleccionada()` (el `SelectedItem` real), una preselección equivocada o nula hacía parecer
+que tampoco "recordaba" bien la próxima vez.
+
+### Cambio
+
+- `Main.xaml.cs`: se agregó `seleccionarPlantillaAutomatica(Plantilla)`, que matchea la plantilla
+  ganadora por `path` directamente contra los items de `LB_Plantillas.ItemsSource` (la lista realmente
+  filtrada), en vez de correlacionar índices entre dos lecturas de listas distintas. Reemplaza los dos
+  bloques duplicados del constructor (plan directo y plan suma).
+- `Plantillla.cs`: `SeleccionarAutomaticamentePlantilla` filtra a `Visible` antes de buscar (memoria y
+  coincidencia de estructuras), así la ganadora siempre puede preseleccionarse. No se tilda
+  `CHB_MostrarOcultas` automáticamente: se busca siempre entre las visibles.
+
+### Test
+
+`Tests/TestPreseleccionPlantilla/` (réplica aislada, sin WPF/ESAPI, de la lógica de selección
+viejo/nuevo sobre listas completa vs. filtrada):
+
+- Viejo con ocultas antes de la ganadora → `SelectedIndex` fuera de rango → no selecciona nada (bug
+  reproducido).
+- Viejo con corrimiento de índice (una oculta + una visible después de la ganadora) → selecciona la
+  plantilla equivocada (bug reproducido).
+- Sin plantillas ocultas, viejo y nuevo coinciden (por eso el bug no era evidente siempre).
+- Nuevo (matcheo por `path`) selecciona la plantilla correcta en ambos casos con ocultas.
+- Viejo: `SeleccionarAutomaticamentePlantilla` puede devolver una oculta (memoria o coincidencia).
+- Nuevo: filtrando a visibles antes de buscar, una recordada que se ocultó ya no puede ganar.
+
+`dotnet run` sobre el proyecto: `TODOS LOS CHEQUEOS OK` (7/7). Se compiló además el proyecto completo
+(`build.ps1 13_6`) dos veces (una por cada cambio): OK, sin errores.
+
+## 2026-09-15 — Migración a build separado por Eclipse 13.6/15.6/18.2: fix de `PlanSetup.UniqueFractionation`
+
+### Pedido
+
+Hacer el proyecto compatible con Eclipse 15.6 y 18.2 además de 13.6 (versión actual). Se decidió con
+el usuario: build separado por versión (3 `.csproj`), DLL de ESAPI vendorizadas en `lib/ESAPI/<version>/`
+(no versionadas en git), breaking changes a detectar compilando contra cada versión.
+
+### Antes
+
+`ExploracionPlanes.csproj` (único) referenciaba las 3 DLL de ESAPI desde la carpeta `bin` de otro
+proyecto en desarrollo, sin versión rastreada — compilaba solo contra lo que fuera que hubiera ahí
+(de hecho, esa ruta ni existe en este share, es local a otra máquina).
+
+### Cambio
+
+- `ExploracionPlanes.csproj` → 3 proyectos (`ExploracionPlanes.Eclipse13_6/15_6/18_2.csproj`), mismos
+  archivos fuente, cada uno con su propio `HintPath` a `lib/ESAPI/<version>/`, `OutputPath`,
+  `DefineConstants` (`ECLIPSE13_6`/`15_6`/`18_2`) y `ProjectGuid`.
+- Al compilar contra las DLL reales de 15.6 y 18.2 (provistas por el usuario), apareció un error real
+  de API, no de referencias: **`PlanSetup.UniqueFractionation` (objeto `Fractionation` con
+  `.NumberOfFractions`/`.PrescribedDosePerFraction`/`.DosePerFractionInPrimaryRefPoint`) existe solo en
+  13.6** — confirmado inspeccionando los símbolos de `VMS.TPS.Common.Model.API.dll` de cada versión
+  (`grep` sobre el binario: 13.6 tiene `Fractionation`/`UniqueFractionation`, 15.6 y 18.2 no tienen
+  ningún símbolo con "Fraction" salvo los ya aplanados). Varian aplanó esas 3 propiedades directo en
+  `PlanSetup` a partir de (al menos) 15.6.
+- Se agregó `EsapiCompat.cs`: 3 métodos de extensión sobre `PlanSetup`
+  (`NumeroFracciones()`, `DosisPrescriptaPorFraccion()`, `DosisPorFraccionEnPuntoRefPrimario()`) que
+  eligen la forma correcta con `#if ECLIPSE13_6`/`#else`. Se reemplazaron los 12 usos directos de
+  `.UniqueFractionation.X` en `Chequeos.cs`, `Condicion.cs`, `Form2.xaml.cs`, `Form2_DosPlanes.xaml.cs`
+  y `Plantillla.cs` por las llamadas al shim.
+- `Tests/StubEsapi/Stub.cs`: se agregaron las 3 propiedades aplanadas a `PlanSetup` (delegando en
+  `UniqueFractionation`, que se mantiene) para que la rama `#else` del shim (la que usan los tests,
+  que no definen ningún `ECLIPSE1x_x`) siga compilando sin tocar los tests existentes.
+- `Tests/TestCondicionPlanSuma/TestCondicionPlanSuma.csproj` y
+  `Tests/GenerarPlantillasReales/GenerarPlantillasReales.csproj`: se linkeó `EsapiCompat.cs` (compilan
+  `Condicion.cs`/`Plantillla.cs` de producción tal cual, que ahora llaman al shim).
+- Detalle menor: `NumberOfFractions` es `int?` en ESAPI real (no `double` como asumía el stub) — el
+  shim hace cast explícito `(double)` para no romper ni el stub ni el real.
+
+### Cómo se testeó
+
+- **Compilación completa de los 3 `.csproj`** (MSBuild, x64, Debug): las 3 versiones compilan sin
+  error tras el fix (antes: 15.6 y 18.2 fallaban con `CS1061` en 8 sitios).
+- **Todos los tests standalone existentes** (`dotnet run`/`dotnet build` en cada proyecto bajo `Tests/`,
+  14 proyectos): sin regresiones, mismos resultados que antes del cambio (incluye `TestCondicionPlanSuma`
+  y `GenerarPlantillasReales`, que ahora enlazan `EsapiCompat.cs`).
+
+### Pendiente
+
+- Falta conseguir/confirmar las DLL de ESAPI reales para verificar que no haya más breaking changes en
+  archivos que no se tocaron todavía (13.6 ya compilaba limpio; 15.6/18.2 compilan limpio ahora, pero
+  no se verificó en vivo dentro de Eclipse real — no es posible desde este entorno).
+- Confirmar el `TargetFrameworkVersion` correcto por versión (hoy los 3 quedaron en v4.8, heredado del
+  original; no se confirmó si 13.6 requiere un framework distinto).
+
+**Actualización 2026-09-16**: se agregó `build.ps1` (genera automáticamente los 2 outputs que antes se
+armaban a mano — `ExploracionPlanes.esapi.dll` para plugin y `ExploracionPlanes.exe` standalone —
+overrideando `OutputType`/`AssemblyName`/`StartupObject` por versión sin tocar los `.csproj`; requirió
+separar `IntermediateOutputPath` por tipo de output porque compartir `obj\` hacía que el incremental
+clean de MSBuild borrara el output de la build anterior).
+
+Al armar `ExploracionPlanes.Eclipse18_2.csproj` no se había conseguido `VMS.TPS.Common.Model.Interface.dll`
+para 18.2 — se sacó esa referencia del `.csproj` porque nada del código la necesitaba para compilar
+(compilaba limpio igual). Al revisar por qué "no hacía falta" se encontró que el chequeo de errores
+había filtrado la salida de MSBuild solo por la palabra "error", y un `warning MSB3245: Could not
+resolve this reference` sobre esa misma DLL había pasado desapercibido — la referencia nunca estuvo
+resuelta, solo no rompía nada porque ningún tipo compilado la tocaba. **El usuario consiguió el archivo
+real** y se repuso la referencia (`lib/ESAPI/18.2/VMS.TPS.Common.Model.Interface.dll`). Recompilación de
+los 3 `.csproj` (sin filtrar por "error", esta vez revisando toda la salida): sin errores ni warnings
+`MSB3245`. `build.ps1 18_2` también OK (genera `ExploracionPlanes.esapi.dll` y `ExploracionPlanes.exe`).
+
+De paso, la recompilación completa de 18.2 mostró (via `warning CS0618`) que `PlanSetup.PrescribedDosePerFraction`
+y `PlanSetup.DosePerFractionInPrimaryRefPoint` ya están marcadas `[Obsolete]` en esa versión (sugieren
+`DosePerFraction`/`PlannedDosePerFraction`) — siguen funcionando hoy, anotado como comentario `ponytail:`
+en `EsapiCompat.cs` por si Varian las saca en una versión futura.
+
+---
+
+## 2026-09-11 (9) — Fix freeze de Alt-Tab en ventana de Chequeos (y toda la app) corriendo en Eclipse
+
+### Pedido
+
+El usuario reportó: al iniciar la ventana de Chequeos, si hace Alt-Tab a otra ventana, después no puede volver — tiene que matar el proceso. Este freeze ya se había arreglado antes (`UI.md`, entrada del fix de `DialogoWpf`), pero volvió a aparecer.
+
+### Antes
+
+`DialogoWpf.cs` (constructor) seteaba el `Owner` del diálogo con `System.Windows.Forms.Form.ActiveForm` (caso app standalone, cuando `Main` corría como WinForms) y, si eso daba null (`Main` migrado a WPF), con un fallback que buscaba la ventana activa en `System.Windows.Application.Current.Windows`. Ese fallback funciona en modo standalone (`Program.cs` crea un `System.Windows.Application`), pero **no en modo plugin de Eclipse** (`Script.cs` hace `new Main(...).ShowDialog()` directo, sin crear nunca un `System.Windows.Application`) — ahí `Application.Current` es `null`, el fallback nunca encuentra dueño, `Owner` queda sin setear, y reaparece el freeze de Alt-Tab documentado en `UI.md`: como los diálogos usan `ShowInTaskbar=False`, Windows no los asocia a la ventana principal y quedan huérfanos en el Z-order al volver de Alt-Tab.
+
+### Cambio
+
+- **`DialogoWpf.cs`**: se reemplaza el fallback basado en `Application.Current.Windows` por una lista estática propia (`VentanasAbiertas`) mantenida por la clase misma — cada `DialogoWpf` se agrega a la lista en su constructor y se quita en `Closed`. Como todos los diálogos de esta app se abren de forma modal y secuencial (nunca en paralelo), la última ventana de la lista antes de agregar la nueva es siempre la dueña correcta. No depende de que exista un `System.Windows.Application`, así que funciona igual en modo standalone y en modo plugin de Eclipse.
+
+### Cómo se testeó
+
+- **Compilación completa** (MSBuild, `ExploracionPlanes.csproj`): build OK, mismos warnings preexistentes de arquitectura MSIL/AMD64.
+- No se pudo probar el escenario real (Alt-Tab corriendo dentro de Eclipse) desde este entorno — requiere Eclipse con licencia de Varian. El razonamiento del fix: antes, en modo Eclipse, `Application.Current` es `null` siempre (comprobable por lectura de código — `Script.cs` nunca instancia `System.Windows.Application`), así que el `?.` de `Application.Current?.Windows...` hacía que `ventanaDueña` quedara `null` en el 100% de los casos en ese modo, sin excepción que avisara del problema. Con el fix, `VentanasAbiertas` se llena independientemente de `Application.Current`.
+
+### Conclusión
+
+- El freeze de Alt-Tab en modo Eclipse debería quedar resuelto para los 7 diálogos que heredan `DialogoWpf` (incluida la ventana de Chequeos). En modo standalone no cambia nada observable (mismo resultado, otra fuente de datos).
+
+### Pendiente
+
+- Confirmar en Eclipse real: abrir la ventana de Chequeos (o cualquier otro diálogo), Alt-Tab a otra ventana, Alt-Tab de vuelta — debe volver a la app sin necesidad de matar el proceso.
+
+**Actualización 2026-09-11**: el usuario probó el fix de arriba en Eclipse real y el freeze siguió pasando — screenshot muestra el propio diálogo "Running Script" de Eclipse trabado con botón "Abort", tapando todo. Análisis de por qué el fix de `DialogoWpf` no alcanzaba: ese fix soluciona la cadena diálogo-hijo → `Main`, pero no cubre a `Main` misma. `Main` es la PRIMERA ventana WPF que se crea (`VentanasAbiertas` está vacía en ese momento), así que su `Owner` quedaba sin setear igual que antes — sin relación de Z-order con la ventana de Eclipse (que sí sigue viva por fuera, a diferencia del modo standalone donde no hay "ventana padre" externa). Al hacer Alt-Tab, Windows no sabe que `Main` "pertenece" a Eclipse y la deja huérfana.
+
+Fix adicional (insuficiente, ver "Segunda actualización" más abajo): **`Script.cs`** — el plugin corre in-process dentro de Eclipse (no es un proceso hijo separado), así que `Process.GetCurrentProcess().MainWindowHandle` es directamente la ventana de Eclipse. Se setea `new WindowInteropHelper(main).Owner = ventanaEclipse` antes de `main.ShowDialog()`.
+
+**Segunda actualización 2026-09-11**: el usuario aclaró que `FormChequeos` aparece ANTES que `Main` — el fix de `Script.cs` no podía alcanzar porque nunca llega a ejecutarse a tiempo: `Main.xaml.cs` (constructor, líneas 60/88) hace `new FormChequeos(texto).ShowDialog()` **dentro de su propio constructor**, y recién cuando ese constructor termina (`new Main(...)` retorna en `Script.cs`) se ejecuta la línea que setea el Owner de `Main` y se llama `main.ShowDialog()`. O sea: `FormChequeos` ya se mostró y cerró antes de que `Main` tenga siquiera un intento de Owner.
+
+Causa raíz real: en el fallback de `DialogoWpf.cs` (`VentanasAbiertas.LastOrDefault()`), la ventana dueña de `FormChequeos` es `Main` — pero `Main` todavía no fue mostrada (`Main.ShowDialog()` ni se llamó) y por lo tanto **no tiene handle de Win32 (HWND) creado todavía**. `new WindowInteropHelper(ventanaDueña).Handle` en ese estado devuelve `IntPtr.Zero` (no fuerza la creación), así que `FormChequeos.Owner` quedaba en `Zero` — sin dueño real, mismo síntoma de Alt-Tab huérfano.
+
+Se probó primero setear la propiedad `Owner` (WPF managed, ventana-a-ventana) en vez del handle nativo, asumiendo que resolvía el handle en forma perezosa — **incorrecto**: un test standalone (`Tests/TestOwnerVentanaNoMostrada/`) lo confirmó al tirar `System.InvalidOperationException: Cannot set Owner property to a Window that has not been shown previously` apenas se intentaba. WPF exige que la ventana dueña ya se haya mostrado al menos una vez para usar esa propiedad.
+
+Fix real: `System.Windows.Interop.WindowInteropHelper.EnsureHandle()` — fuerza la creación del HWND nativo de la ventana dueña **sin mostrarla** (no la hace visible). `DialogoWpf.cs`: `new WindowInteropHelper(this).Owner = new WindowInteropHelper(ventanaDueña).EnsureHandle();` en vez de `.Handle`.
+
+### Cómo se testeó (esta ronda)
+
+- **`Tests/TestOwnerVentanaNoMostrada/`** (proyecto nuevo, WPF puro sin ESAPI, `net9.0-windows` con `UseWPF`/`UseWindowsForms`, compila `DialogoWpf.cs` de producción TAL CUAL): crea una ventana "principal" sin mostrarla (simula `Main` en su propio constructor) y después una ventana "hija" (simula `FormChequeos`), reproduciendo el orden exacto del bug real.
+  - Con `.Handle` (código roto, sin `EnsureHandle`): `dotnet run` → `FAIL Crear el diálogo hijo forzó la creación del handle nativo de la ventana principal` (handle queda en `Zero`, se reprodujo el bug).
+  - Con la propiedad `Owner` managed (primer intento, también roto): excepción sin capturar `InvalidOperationException: Cannot set Owner property to a Window that has not been shown previously` — descartado antes de tocar producción gracias al test.
+  - Con `EnsureHandle()` (fix final): `dotnet run` → `TODOS LOS CHEQUEOS OK` (4/4): la ventana principal arranca sin handle, crear el diálogo hijo fuerza la creación de ese handle, el hijo toma ese handle como Owner, y mostrar/cerrar ambas ventanas en ese orden no tira excepción.
+- **Compilación completa** (MSBuild, `ExploracionPlanes.csproj`): build OK, mismos warnings preexistentes de arquitectura MSIL/AMD64.
+- Sigue sin poder probarse el escenario 100% real (Eclipse + Citrix, que es donde el usuario lo reprodujo) desde este entorno — pendiente confirmación del usuario en su sesión de Citrix.
+
+**Tercera actualización 2026-09-11**: el usuario confirmó que el fix de `EnsureHandle()` tampoco resolvió el problema, ni en Eclipse local ni en Citrix — mismo síntoma exacto (Alt-Tab vuelve al diálogo "Running Script" de Eclipse, sin forma de llegar a la ventana real). El usuario sugirió: ¿hace falta un ícono en la barra de tareas para poder volver?
+
+Esa sugerencia identifica el problema real de raíz, más arriba de todo lo intentado hasta acá: `ShowInTaskbar="False"` en WPF no es solo "no mostrar botón en la barra" — internamente aplica el estilo extendido de Win32 `WS_EX_TOOLWINDOW` a la ventana real, que **excluye la ventana del switcher de Alt-Tab directamente a nivel de Windows**, sin importar qué tan bien esté seteado el `Owner`. Toda la cadena de fixes de esta entrada (`VentanasAbiertas`, `EnsureHandle()`, el owner de `Main` hacia Eclipse) arregla la relación de Z-order/parentesco entre ventanas, pero eso es irrelevante si la ventana ni siquiera aparece en la lista que Alt-Tab ofrece para volver — con `ShowInTaskbar=False` el usuario nunca tiene, a nivel de Windows, ninguna forma de "pedir" esa ventana de vuelta salvo que su dueña la traiga al frente ella misma (y evidentemente eso no está pasando de forma confiable en Eclipse/Citrix).
+
+Fix real (mucho más simple que todo lo anterior, y el que soluciona la causa de raíz en vez de parchear la consecuencia): se saca `ShowInTaskbar="False"` de los 5 diálogos que lo tenían — `FormChequeos.xaml`, `FormTB.xaml`, `Form_ListaRestricciones.xaml`, `PlanesParaComparar.xaml`, `PlanesSumaContext.xaml` (quedan con `WindowStyle="ToolWindow" ResizeMode="NoResize"` nada más). Ahora cada uno tiene su propio botón en la barra de tareas — el usuario puede volver a la ventana haciendo click ahí, sin depender de que Alt-Tab o el `Owner` funcionen bien dentro del proceso de Eclipse.
+
+Los fixes de `Owner`/`EnsureHandle`/`Script.cs` de las actualizaciones anteriores **se dejan como están** (no está mal tenerlos — siguen siendo correctos para el Z-order y evitan otros síntomas relacionados, como que el diálogo quede detrás de su dueña al recuperar el foco), pero el que de verdad resuelve "no puedo volver, tengo que matar el proceso" es sacar `ShowInTaskbar=False`.
+
+### Cómo se testeó (ícono en barra de tareas)
+
+- **Compilación completa** (MSBuild) tras sacar `ShowInTaskbar="False"` de los 5 XAML: build OK, mismos warnings preexistentes.
+- No se pudo verificar visualmente el ícono en la barra de tareas ni el comportamiento de Alt-Tab real desde este entorno (requiere Windows con sesión interactiva real, Citrix o Eclipse) — pendiente confirmación del usuario.
+
+### Pendiente
+
+- Confirmación del usuario: abrir la ventana de Chequeos, Alt-Tab afuera, y volver either por Alt-Tab o clickeando su ícono nuevo en la barra de tareas.
+- Si aparecer en la barra de tareas resulta visualmente indeseado para alguno de estos 5 diálogos chicos (por verse "de más" en la barra), evaluar con el usuario si vale la pena ese costo estético a cambio de la confiabilidad, o buscar una alternativa (ej. degradar a un `MessageBox`/ventana no-modal para los casos más simples).
+
+---
+
+## 2026-09-11 (8) — Fix InvalidCastException al analizar un plan suma con restricciones NumFx (OARs)
+
+### Pedido
+
+El usuario reportó: al Analizar un plan suma con una plantilla de SBRT Abdomen-Pelvis, aparece `Unable to cast object of type 'VMS.TPS.Common.Model.API.PlanSum' to type 'VMS.TPS.Common.Model.API.PlanSetup'` — pero si en cambio analiza los constraints de PTV, no falla, solo con los de OARs.
+
+### Antes
+
+`Condicion.ValorObtenido` (`Condicion.cs:43`), para `Tipo.NumFx` (condición usada en restricciones de OAR que dependen del número de fracciones, ej. "Médula < X si 5 fx"; las de PTV/CTV suelen ser `SinCondicion` y no pasan por esta rama), casteaba directo `((PlanSetup)planActual)`. `CumpleCondicion`/`ValorObtenido` se llama con `planSeleccionado()` (`Form2.xaml.cs:468`), que al analizar un plan suma es un `PlanSum`, no un `PlanSetup` → `InvalidCastException` apenas se llega a la primera restricción de OAR con condición NumFx.
+
+### Cambio
+
+- **`Condicion.cs`**: en `ValorObtenido`, rama `Tipo.NumFx`, si `planActual` es `PlanSetup` se usa directo; si es `PlanSum`, se toma `NumberOfFractions` del primer `PlanSetup` de `PlanSum.PlanSetups` (mismo patrón ya usado en otros lugares del código para plan suma, ej. `Form2.xaml.cs:443`/`Form2_DosPlanes.xaml.cs:271` con `planSetupTitulo`).
+
+### Cómo se testeó
+
+- **`Tests/TestCondicionPlanSuma/`** (proyecto nuevo, mismo patrón que `GenerarPlantillasReales`: compila `Condicion.cs` de producción TAL CUAL contra `StubEsapi`, sin reimplementar la lógica): crea un `PlanSetup` con 5 fx y un `PlanSum` que lo contiene, y una `Condicion.crear(Tipo.NumFx, Operador.igual_a, 5)`.
+  - Con el código **antes** del fix: `dotnet run` → `FAIL CumpleCondicion con PlanSum no tira InvalidCastException` (se reprodujo el bug real, mismo mensaje de excepción que reportó el usuario).
+  - Con el fix aplicado: `dotnet run` → `TODOS LOS CHEQUEOS OK` (3/3): `CumpleCondicion` con `PlanSetup` da el mismo resultado que antes (5==5 → cumple), con `PlanSum` ya no tira la excepción, y toma las fracciones del `PlanSetup` interno correctamente.
+
+### Conclusión
+
+- Analizar un plan suma contra una plantilla con restricciones de OAR condicionadas por número de fracciones (típico en plantillas SBRT) ya no tira `InvalidCastException`. Las restricciones de PTV/CTV no se vieron afectadas por el bug (no pasan por la rama `NumFx`) ni por el fix.
+- Asume que, para un plan suma, todos los `PlanSetup` que lo componen comparten el mismo número de fracciones (caso típico: mismo curso, técnica de suma de planes) — no se contempla plan suma de fraccionamientos distintos combinados en una sola condición NumFx.
+
+---
+
 ## 2026-09-10 (7) — Cache de GetDVHCumulativeData por (plan, estructura, presentación) — Análisis de plan suma lento
 
 ### Pedido
@@ -1940,6 +2169,64 @@ también).
 región, no por fx, y busca un archivo `SBRT_real.txt` que ya no se genera). No se tocó porque no fue
 pedido esta vez; si se quiere seguir comparando SBRT contra las manuales hay que rediseñar esa lógica
 (comparar cada plantilla nueva contra la unión de las 4 manuales, filtrando por estructura en vez de fx).
+
+---
+
+## 2026-09-11 — Bug real: constraints UK Consortium en % cuando debían ser en Gy
+
+### Reporte del usuario
+
+En SBRT había constraints tomados en % que deberían ser en Gy — solo Lung y Kidney tienen constraints
+legítimos en %. Pedido: revisar contra el CSV, algo estaba mal interpretado.
+
+### La causa
+
+En `ParsearBloqueOAR`, ramas "mean"/"med" y "...cc" (columna `METRIC` de UK Consortium — ej. `D0.1cc`,
+`Dmean`): la unidad se decidía con `Linea[5].Contains("Gy") ? "Gy" : "%"` — pero el **valor real** puede
+venir de `Linea[5]` (optimal) **o** de `Linea[6]` (mandatory), según cuál esté vacía (`RestriccionConsortium`
+ya maneja esto para el número). El chequeo de unidad solo miraba `Linea[5]`: si esa celda estaba vacía (el
+valor salía de `Linea[6]`), `Contains("Gy")` daba `false` y quedaba "%" por default — aunque `Linea[6]`
+dijera "Gy" clarito. Ejemplo real (`1 FX.csv`, Esophagus): `Esophagus,<5,20,24,D0.1cc,,15.4 Gy` — `Linea[5]=""`,
+`Linea[6]="15.4 Gy"` → unidad quedaba en "%" en vez de "Gy". Afectaba casi todos los `D0.1cc`/`Dmean` de
+la tabla (Trachea, Esophagus, Heart_PRV, GreatVessels, SpinalCord_PRV, Ribs, Skin, Stomach, BileDuct,
+Duodenum, Jejunum/ileum, Colon, Bladder_PRV, Rectum_PRV, Urethra, etc. — la lista larga que mostró el
+usuario).
+
+### Fix en `DesdeCSV.cs`
+
+Se invirtió el default: antes "Gy solo si aparece explícito en Linea[5], si no %" (equivocado — dejaba "%"
+por default en el caso más común, celda vacía); ahora `(Linea[5].Contains("%") || Linea[6].Contains("%")) ?
+"%" : "Gy"` — Gy es el default (la gran mayoría de los D0.1cc/Dmean), "%" solo cuando aparece explícito en
+cualquiera de las 2 celdas (que es como aparecen los casos reales de Lung/Kidney). Aplicado en las 2 ramas
+("mean"/"med" y "...cc").
+
+La rama "V" (metrica UK tipo `V20Gy`, la que realmente usan Lung/Kidney) no se tocó — ahí la unidad
+(`Linea[5].Contains("cc") ? "cm3" : "%"`) ya era correcta (el default en ese tipo de métrica SI es %, `cc`
+es la excepción) y nunca tuvo el bug.
+
+### Cómo se testeó
+
+Regenerado con `Tests/GenerarPlantillasReales` (tuvo que agregarse `RestriccionBase.cs`/`CacheDVH.cs` al
+`.csproj` — el dedup de las 6 clases `Restriccion*` de un commit reciente las hizo depender de esa base
+común, antes no existía) y verificado con Node (JSON real, no regex) sobre las 2 plantillas SBRT:
+
+```
+SBRT Torax-Abdomen: 23 restricciones con unidadValor=%, de las cuales 4 fuera de Lung/Kidney
+  (las 3 de PTV en % de prescripcion -- correctas, no son de este bug -- y 1 de Liver-GTV)
+SBRT Abdomen-Pelvis: 7 con %, mismas 4 "fuera de Lung/Kidney"
+```
+
+La única fuera de Lung/Kidney que no es de PTV (`Liver-GTV: V10Gy < 70% (NumFx=5)`) se revisó contra
+`5 FX.csv` línea 21 (`,,,,V10 Gy ,70 %,`) — es un dato real de la tabla UK Consortium (rama "V", la misma
+que Lung/Kidney), no el bug. **Confirmado por el usuario: el de Liver está OK.**
+
+Todos los `D0.1cc`/`Dmean` que antes quedaban mal en % ahora están en Gy — 0 residuos del bug real.
+Los conteos totales de restricciones no cambian (384/388): es una corrección de unidad, no de cantidad.
+
+### Publicación
+
+`RC.txt`, `SBRT Torax-Abdomen.txt`, `SBRT Abdomen-Pelvis.txt` actualizados en
+`\\ARIAMEVADB-SVR\va_data$\Plantillas_` (staging, no la real) y en `Tests/CompararPlantillas/salida/`.
 
 ---
 

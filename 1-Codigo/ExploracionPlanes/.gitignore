@@ -4,3 +4,4 @@ bin/
 obj/
 ExploracionPlanes.exe_*.txt
 *.dmp
+lib/ESAPI/

@@ -255,7 +255,7 @@ namespace ExploracionPlanes
         // por nombre de plantilla, usadas solo para desempatar cuando dos o más plantillas matchean igual.
         public static Plantilla SeleccionarAutomaticamentePlantilla(PlanningItem plan, Patient paciente = null)
         {
-            List<Plantilla> plantillas = Plantilla.leerPlantillas();
+            List<Plantilla> plantillas = Plantilla.leerPlantillas().Where(p => p.Visible).ToList();
 
             if (paciente != null)
             {
@@ -326,7 +326,7 @@ namespace ExploracionPlanes
         {
             IQueryable<Plantilla> query = plantillas.AsQueryable();
 
-            int numFx = (int)planSetup.UniqueFractionation.NumberOfFractions;
+            int numFx = (int)planSetup.NumeroFracciones();
             if (query.Count() > 1 && query.Any(p => p.nombre.Contains("_" + numFx + "fx")))
             {
                 query = query.Where(p => p.nombre.Contains("_" + numFx + "fx")).AsQueryable();
@@ -344,7 +344,7 @@ namespace ExploracionPlanes
             }
             if (query.Count() > 1 && query.Any(p => p.nombre.ToLower().Contains("hipo")))
             {
-                if (planSetup.UniqueFractionation.NumberOfFractions == 15) // Mama hipofraccionada
+                if (planSetup.NumeroFracciones() == 15) // Mama hipofraccionada
                 {
                     query = query.Where(p => p.nombre.ToLower().Contains("hipo")).AsQueryable();
                 }
@@ -367,7 +367,7 @@ namespace ExploracionPlanes
 
             if (query.Count() > 1 && query.Any(p => p.nombre.ToLower().Contains("pros"))) //prostata vs pelvis
             {
-                if (planSetup.UniqueFractionation.NumberOfFractions > 35)
+                if (planSetup.NumeroFracciones() > 35)
                 {
                     query = query.Where(p => p.nombre.ToLower().Contains("pros")).AsQueryable();
                 }

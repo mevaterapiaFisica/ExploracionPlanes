@@ -29,6 +29,8 @@
     <Compile Include="..\..\IO.cs" Link="produccion\IO.cs" />
     <Compile Include="..\..\Configuracion.cs" Link="produccion\Configuracion.cs" />
     <Compile Include="..\..\DatosEdicionRestriccion.cs" Link="produccion\DatosEdicionRestriccion.cs" />
+    <Compile Include="..\..\RestriccionBase.cs" Link="produccion\RestriccionBase.cs" />
+    <Compile Include="..\..\CacheDVH.cs" Link="produccion\CacheDVH.cs" />
     <Compile Include="..\..\RestriccionDosis.cs" Link="produccion\RestriccionDosis.cs" />
     <Compile Include="..\..\RestriccionDosisMax.cs" Link="produccion\RestriccionDosisMax.cs" />
     <Compile Include="..\..\RestriccionDosisMedia.cs" Link="produccion\RestriccionDosisMedia.cs" />
@@ -38,6 +40,7 @@
     <Compile Include="..\..\Metodos.cs" Link="produccion\Metodos.cs" />
     <Compile Include="..\..\DVHDataExtensions_ESAPIX.cs" Link="produccion\DVHDataExtensions_ESAPIX.cs" />
     <Compile Include="..\..\EQD2.cs" Link="produccion\EQD2.cs" />
+    <Compile Include="..\..\EsapiCompat.cs" Link="produccion\EsapiCompat.cs" />
   </ItemGroup>
 
 </Project>
